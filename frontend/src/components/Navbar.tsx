@@ -1,12 +1,20 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Shield, Menu, X, Terminal, Compass } from 'lucide-react';
+import { Shield, Menu, X, Terminal, Compass, BookOpen } from 'lucide-react';
 import { useProgress } from '../context/ProgressContext';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-  const { openDrawer, progress, isEli5Mode, toggleEli5Mode } = useProgress();
+  const {
+    openDrawer,
+    progress,
+    isEli5Mode,
+    toggleEli5Mode,
+    userLevel,
+    openOnboardingModal,
+    openBeginnerGuide,
+  } = useProgress();
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -58,6 +66,16 @@ const Navbar: React.FC = () => {
 
           {/* Desktop Right Actions */}
           <div className="hidden md:flex items-center space-x-3">
+            {/* Beginner Guide & Level Switcher */}
+            <button
+              onClick={userLevel === 'beginner' ? openBeginnerGuide : openOnboardingModal}
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 text-xs font-semibold transition-all duration-200"
+              title="Open Beginner Cryptography Crash Course & Level Selector"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>{userLevel === 'beginner' ? '🌱 Beginner Course' : '🚀 Mode: Pro'}</span>
+            </button>
+
             {/* ELI5 Toggle Button */}
             <button
               onClick={toggleEli5Mode}

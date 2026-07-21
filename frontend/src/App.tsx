@@ -4,6 +4,8 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import CryptoJourneyDrawer from './components/CryptoJourneyDrawer';
 import ProgressToastContainer from './components/ProgressToastContainer';
+import { OnboardingModal } from './components/OnboardingModal';
+import { BeginnerGuideModal } from './components/BeginnerGuideModal';
 import { ProgressProvider } from './context/ProgressContext';
 
 // Pages
@@ -32,6 +34,8 @@ const App: React.FC = () => {
           <Navbar />
           <CryptoJourneyDrawer />
           <ProgressToastContainer />
+          <OnboardingModal />
+          <BeginnerGuideModal />
 
           <main className="flex-grow z-10">
             <Routes>

@@ -337,6 +337,14 @@ interface ProgressContextType {
   toggleDrawer: () => void;
   isEli5Mode: boolean;
   toggleEli5Mode: () => void;
+  userLevel: 'beginner' | 'intermediate' | null;
+  setUserLevel: (level: 'beginner' | 'intermediate') => void;
+  showOnboardingModal: boolean;
+  openOnboardingModal: () => void;
+  closeOnboardingModal: () => void;
+  showBeginnerGuide: boolean;
+  openBeginnerGuide: () => void;
+  closeBeginnerGuide: () => void;
   progress: ProgressState;
   notifications: ProgressNotification[];
   dismissNotification: (id: string) => void;
@@ -351,9 +359,42 @@ const ProgressContext = createContext<ProgressContextType | undefined>(undefined
 const STORAGE_KEY = 'cryptolab_user_progress_v1';
 const ELI5_STORAGE_KEY = 'cryptolab_eli5_mode';
 const BROADCAST_CHANNEL = 'cryptolab_progress_broadcast';
+const LEVEL_STORAGE_KEY = 'cryptolab_user_level';
 
 export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [userLevel, setUserLevelState] = useState<'beginner' | 'intermediate' | null>(() => {
+    try {
+      return (localStorage.getItem(LEVEL_STORAGE_KEY) as 'beginner' | 'intermediate') || null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [showOnboardingModal, setShowOnboardingModal] = useState<boolean>(() => {
+    try {
+      return !localStorage.getItem(LEVEL_STORAGE_KEY);
+    } catch {
+      return false;
+    }
+  });
+
+  const [showBeginnerGuide, setShowBeginnerGuide] = useState(false);
+
+  const setUserLevel = (level: 'beginner' | 'intermediate') => {
+    setUserLevelState(level);
+    try {
+      localStorage.setItem(LEVEL_STORAGE_KEY, level);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const openOnboardingModal = () => setShowOnboardingModal(true);
+  const closeOnboardingModal = () => setShowOnboardingModal(false);
+  const openBeginnerGuide = () => setShowBeginnerGuide(true);
+  const closeBeginnerGuide = () => setShowBeginnerGuide(false);
+
   const [isEli5Mode, setIsEli5Mode] = useState<boolean>(() => {
     try {
       return localStorage.getItem(ELI5_STORAGE_KEY) === 'true';
@@ -556,7 +597,10 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const resetProgress = () => {
     setProgress(DEFAULT_PROGRESS);
+    setUserLevelState(null);
+    setShowOnboardingModal(true);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LEVEL_STORAGE_KEY);
     addToastNotification('🔄 Progress Reset', 'Learning statistics reset to baseline.', 'lab');
   };
 
@@ -569,6 +613,14 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         toggleDrawer,
         isEli5Mode,
         toggleEli5Mode,
+        userLevel,
+        setUserLevel,
+        showOnboardingModal,
+        openOnboardingModal,
+        closeOnboardingModal,
+        showBeginnerGuide,
+        openBeginnerGuide,
+        closeBeginnerGuide,
         progress,
         notifications,
         dismissNotification,
