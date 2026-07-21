@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Globe, RefreshCw, Server, ShieldCheck, Award, FileText, Lock, ChevronRight } from 'lucide-react';
+import { RealWorldUsesCard } from '../components/RealWorldUsesCard';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 
@@ -252,6 +253,31 @@ const CertificateLab: React.FC = () => {
         </div>
 
       </div>
+
+      <RealWorldUsesCard
+        title="Where are X.509 Certificates Used in Real Life?"
+        subtitle="X.509 public key certificates establish trust and identity across websites, mobile apps, and enterprise networks."
+        items={[
+          {
+            title: "Browser HTTPS Padlock Icon",
+            description: "Web browsers verify X.509 certificates issued by trusted Certificate Authorities (DigiCert, Let's Encrypt) before displaying HTTPS connection security.",
+            example: "Issued by: Let's Encrypt Authority X3",
+            badge: "Web Security"
+          },
+          {
+            title: "Enterprise VPN & Zero Trust",
+            description: "Corporate networks issue client X.509 certificates to employee laptops to authenticate device identities (mTLS) before granting network access.",
+            example: "Mutual TLS (mTLS) Client Certs",
+            badge: "Enterprise Networks"
+          },
+          {
+            title: "Apple & Android App Store Signing",
+            description: "Mobile apps compiled for iOS and Android must be signed with valid X.509 developer certificates to execute on mobile hardware.",
+            example: "Apple Worldwide Developer CA",
+            badge: "App Distribution"
+          }
+        ]}
+      />
     </div>
   );
 };

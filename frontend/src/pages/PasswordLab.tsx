@@ -6,6 +6,7 @@ import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
 import { Eli5Tooltip } from '../components/Eli5Tooltip';
+import { RealWorldUsesCard } from '../components/RealWorldUsesCard';
 
 const PasswordLab: React.FC = () => {
   const { markLabVisited, updateLabProgress, recordAlgorithmLearned } = useProgress();
@@ -512,6 +513,31 @@ const PasswordLab: React.FC = () => {
         </div>
 
       </div>
+
+      <RealWorldUsesCard
+        title="Where are Key Derivation Functions (KDFs) Used in Real Life?"
+        subtitle="Slow, memory-hard KDFs protect user credentials against massive password database breaches and offline GPU brute-forcing."
+        items={[
+          {
+            title: "Web App Login Authentication",
+            description: "Modern web platforms like 1Password and Bitwarden hash user passwords using Argon2id so attackers cannot easily crack stolen database dumps.",
+            example: "$argon2id$v=19$m=65536...",
+            badge: "User Auth"
+          },
+          {
+            title: "Password Managers (Master Key)",
+            description: "Password vaults run PBKDF2 or Argon2 for 100,000+ iterations on your master password to generate your 256-bit vault encryption key.",
+            example: "vault_key = PBKDF2(pass, salt, 600000)",
+            badge: "Password Vaults"
+          },
+          {
+            title: "Cryptocurrency Keystores",
+            description: "Ethereum JSON keystore wallets use scrypt to encrypt your private key on disk using your wallet passphrase.",
+            example: "scrypt kdf: N=262144, r=8",
+            badge: "Crypto Wallets"
+          }
+        ]}
+      />
     </div>
   );
 };

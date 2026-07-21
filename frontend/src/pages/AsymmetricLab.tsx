@@ -4,6 +4,7 @@ import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
 import { Eli5Tooltip } from '../components/Eli5Tooltip';
+import { RealWorldUsesCard } from '../components/RealWorldUsesCard';
 
 const AsymmetricLab: React.FC = () => {
   const { markLabVisited, updateLabProgress, recordAlgorithmLearned } = useProgress();
@@ -417,6 +418,31 @@ const AsymmetricLab: React.FC = () => {
         </div>
 
       </div>
+
+      <RealWorldUsesCard
+        title="Where is Asymmetric Key Cryptography Used in Real Life?"
+        subtitle="Public/private key pairs solve the key distribution problem across untrusted public networks."
+        items={[
+          {
+            title: "SSH Server Remote Access",
+            description: "Developers generate RSA or Ed25519 public/private key pairs to log into remote cloud servers securely without passwords.",
+            example: "~/.ssh/id_rsa & id_rsa.pub",
+            badge: "Server Access"
+          },
+          {
+            title: "HTTPS Key Encapsulation",
+            description: "When opening a website, public key cryptography establishes a secret session key (ECDHE) between browser and web server.",
+            example: "ECDHE-RSA-AES128-GCM-SHA256",
+            badge: "TLS Handshake"
+          },
+          {
+            title: "Bitcoin & Blockchain Wallets",
+            description: "Crypto wallet addresses are derived directly from Elliptic Curve (SECP256k1) public keys, allowing keyholders to authorize transfers.",
+            example: "0x71C765... (SECP256k1)",
+            badge: "Crypto Wallets"
+          }
+        ]}
+      />
     </div>
   );
 };

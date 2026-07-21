@@ -4,6 +4,7 @@ import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
 import { Eli5Tooltip } from '../components/Eli5Tooltip';
+import { RealWorldUsesCard } from '../components/RealWorldUsesCard';
 
 const HashingLab: React.FC = () => {
   const { markLabVisited, updateLabProgress, recordAlgorithmLearned } = useProgress();
@@ -502,6 +503,31 @@ const HashingLab: React.FC = () => {
         </div>
 
       </div>
+
+      <RealWorldUsesCard
+        title="Where is Hashing Used in Real Life?"
+        subtitle="Cryptographic hash functions operate behind the scenes in almost every software application you use."
+        items={[
+          {
+            title: "Git Code Versioning",
+            description: "Git uses SHA-1 and SHA-256 hashes to uniquely identify every commit, tree, and file blob in your project repository.",
+            example: "git commit sha: a95eda2...",
+            badge: "Version Control"
+          },
+          {
+            title: "Software Integrity Checks",
+            description: "Operating system ISOs and app installers publish SHA-256 checksums so users can verify downloads aren't corrupted or tampered with.",
+            example: "sha256sum ubuntu-24.04.iso",
+            badge: "Security Integrity"
+          },
+          {
+            title: "API Authentication (HMAC)",
+            description: "Services like Stripe, AWS, and GitHub API sign webhook payloads using HMAC-SHA256 to prove authenticity.",
+            example: "X-Stripe-Signature: t=16200...",
+            badge: "Web APIs"
+          }
+        ]}
+      />
     </div>
   );
 };

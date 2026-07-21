@@ -4,6 +4,7 @@ import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
 import { Eli5Tooltip } from '../components/Eli5Tooltip';
+import { RealWorldUsesCard } from '../components/RealWorldUsesCard';
 
 const SignatureLab: React.FC = () => {
   const { markLabVisited, updateLabProgress } = useProgress();
@@ -438,6 +439,31 @@ const SignatureLab: React.FC = () => {
         </div>
 
       </div>
+
+      <RealWorldUsesCard
+        title="Where are Digital Signatures Used in Real Life?"
+        subtitle="Digital signatures provide authenticity, integrity, and non-repudiation across software updates, financial transactions, and legal documents."
+        items={[
+          {
+            title: "OS & App Software Updates",
+            description: "Windows, macOS, and Linux package managers verify developer RSA/ECDSA digital signatures before installing software updates to block malware injection.",
+            example: "codesign --verify app.dmg",
+            badge: "App Integrity"
+          },
+          {
+            title: "Legal & PDF Document Signing",
+            description: "DocuSign, Adobe Sign, and electronic contracts attach cryptographic signatures to PDFs to legally prove who signed the document.",
+            example: "Adobe PKCS#7 PDF Signature",
+            badge: "Legal Tech"
+          },
+          {
+            title: "Cryptocurrency Transactions",
+            description: "Every Bitcoin or Ethereum transaction requires an ECDSA / Schnorr signature created with the sender's private key to authorize spending funds.",
+            example: "ECDSA (secp256k1) Signature",
+            badge: "Financial Networks"
+          }
+        ]}
+      />
     </div>
   );
 };

@@ -4,6 +4,7 @@ import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
 import { Eli5Tooltip } from '../components/Eli5Tooltip';
+import { RealWorldUsesCard } from '../components/RealWorldUsesCard';
 
 const SymmetricLab: React.FC = () => {
   const { markLabVisited, updateLabProgress, recordAlgorithmLearned } = useProgress();
@@ -509,6 +510,31 @@ const SymmetricLab: React.FC = () => {
         </div>
 
       </div>
+
+      <RealWorldUsesCard
+        title="Where is Symmetric Encryption Used in Real Life?"
+        subtitle="Symmetric ciphers provide high-speed, bulk encryption for network data in transit and files at rest."
+        items={[
+          {
+            title: "HTTPS Web Security (TLS 1.3)",
+            description: "Over 95% of modern web traffic uses AES-256-GCM or ChaCha20-Poly1305 to encrypt web pages and API requests between browsers and servers.",
+            example: "Cipher: TLS_AES_256_GCM_SHA384",
+            badge: "Web Traffic"
+          },
+          {
+            title: "Full Disk Encryption",
+            description: "Windows BitLocker, macOS FileVault, and Android storage encrypt your hard drive sectors using AES-XTS mode so lost laptops cannot be read.",
+            example: "BitLocker AES-256-XTS",
+            badge: "Disk Storage"
+          },
+          {
+            title: "End-to-End Messaging",
+            description: "WhatsApp, Signal, and Telegram secret chats use ChaCha20 / AES-256 to encrypt chat messages before sending them across internet relays.",
+            example: "Signal Protocol Payload",
+            badge: "Secure Chat"
+          }
+        ]}
+      />
     </div>
   );
 };
