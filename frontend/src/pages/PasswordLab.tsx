@@ -4,6 +4,8 @@ import {
 } from 'lucide-react';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
+import { Eli5Banner } from '../components/Eli5Banner';
+import { Eli5Tooltip } from '../components/Eli5Tooltip';
 
 const PasswordLab: React.FC = () => {
   const { markLabVisited, updateLabProgress, recordAlgorithmLearned } = useProgress();
@@ -61,32 +63,32 @@ const PasswordLab: React.FC = () => {
   };
 
   const handleHashPassword = async () => {
+    if (!hashPassword) return;
     setHashLoading(true);
     try {
-      const response = await api.post('/passwords/hash', {
+      const res = await api.post('/passwords/hash', {
         password: hashPassword,
         algorithm: hashAlg,
         salt: hashSalt || undefined
       });
-      setHashResult(response.data);
-      recordAlgorithmLearned(hashAlg === 'Argon2id' ? 'Argon2' : hashAlg);
-    } catch (e: any) {
-      alert(e.response?.data?.detail || 'Hashing failed');
+      setHashResult(res.data);
+      recordAlgorithmLearned(hashAlg.toUpperCase());
+    } catch (e) {
+      console.error(e);
     } finally {
       setHashLoading(false);
     }
   };
 
-  // Run Dictionary Attack Simulation
   const runSimulation = () => {
-    setSimLogs([]);
     setSimState('hashing');
-    setSimLogs(prev => [...prev, `[INIT] User password: "${simPassword}"`]);
+    setSimLogs([`[INIT] Registering new user account...`]);
     
     setTimeout(() => {
       if (!useSalt) {
         setSimLogs(prev => [
-          ...prev, 
+          ...prev,
+          `[WARNING] Storing unsalted hash!`,
           `[HASH] Calculating raw MD5 digest: "${simPassword}" -> c2860a169b1c93a0279d63c438ee2e85`,
           `[ATTACK] Initiating Dictionary Attack... Loading 10M common password list.`,
         ]);
@@ -146,7 +148,7 @@ const PasswordLab: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div className="max-w-7xl mx-auto px-4 sm:6 lg:px-8 py-16">
       
       {/* Header */}
       <div className="mb-8 border-b border-gray-800/80 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -159,7 +161,7 @@ const PasswordLab: React.FC = () => {
             Check password entropy, explore salts and peppers, and hash inputs with modern standards.
           </p>
         </div>
-        
+
         <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
           {(['strength', 'hash', 'salts', 'standards'] as const).map((tab) => (
             <button
@@ -177,6 +179,18 @@ const PasswordLab: React.FC = () => {
         </div>
       </div>
 
+      {/* ELI5 Banner */}
+      <Eli5Banner
+        title="Understanding Password Security & Salts"
+        analogyTitle="Unique Seasoning for Every Dish"
+        analogyDescription="Imagine storing cake recipes in a public cookbook. If two people bake chocolate cake (password '123456'), their cakes look identical! A 'Salt' is a random secret ingredient added to each recipe so even identical cakes come out looking totally unique. Attackers can't use pre-printed lookup cheat sheets (Rainbow Tables)!"
+        bulletPoints={[
+          "Password Entropy: How unpredictable your password is (like rolling 20 dice vs 2 dice).",
+          "Cryptographic Salt: Random noise added to passwords to prevent lookup attacks.",
+          "Argon2id / bcrypt: Slow 'memory-hard' functions designed to burn attacker GPU processing power."
+        ]}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Left Interactive Panel */}
@@ -189,7 +203,10 @@ const PasswordLab: React.FC = () => {
               
               <div className="space-y-4">
                 <div className="relative">
-                  <label className="block text-xs font-mono uppercase text-gray-400 mb-2">Enter Password</label>
+                  <label className="block text-xs font-mono uppercase text-gray-400 mb-2 flex items-center">
+                    Enter Password
+                    <Eli5Tooltip term="Password Entropy" simpleExplanation="Measures how hard your secret password is to guess based on random character variety." analogy="Rolling 20 dice vs rolling 2 dice" />
+                  </label>
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}

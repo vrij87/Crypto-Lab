@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Key, Lock, Unlock, RefreshCw, Copy, Check, Info, ArrowRight } from 'lucide-react';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
+import { Eli5Banner } from '../components/Eli5Banner';
+import { Eli5Tooltip } from '../components/Eli5Tooltip';
 
 const SymmetricLab: React.FC = () => {
   const { markLabVisited, updateLabProgress, recordAlgorithmLearned } = useProgress();
@@ -64,7 +66,7 @@ const SymmetricLab: React.FC = () => {
         mode: encMode
       });
       setEncResult(response.data);
-      recordAlgorithmLearned('AES256');
+      recordAlgorithmLearned(`${encAlg}${encKeySize}`);
       
       // Auto-populate decryption fields for testing convenience
       setDecCiphertext(response.data.ciphertext);
@@ -81,6 +83,10 @@ const SymmetricLab: React.FC = () => {
   };
 
   const handleDecrypt = async () => {
+    if (!decCiphertext || !decKey || !decIv) {
+      alert('Please fill in Ciphertext, Secret Key, and IV.');
+      return;
+    }
     setDecLoading(true);
     setDecResult(null);
     setDecError(null);
@@ -108,7 +114,7 @@ const SymmetricLab: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div className="max-w-7xl mx-auto px-4 sm:6 lg:px-8 py-16">
       
       {/* Title */}
       <div className="mb-8 border-b border-gray-800/80 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -139,6 +145,18 @@ const SymmetricLab: React.FC = () => {
         </div>
       </div>
 
+      {/* ELI5 Banner */}
+      <Eli5Banner
+        title="Understanding Symmetric Encryption"
+        analogyTitle="The One-Key Physical Lockbox"
+        analogyDescription="Imagine a steel lockbox with a single key. You put a secret letter inside and turn the key (Encrypt). Anyone holding an identical key can turn it back to open the box (Decrypt). If an attacker finds the locked box without the key, all they see is scrambled metal!"
+        bulletPoints={[
+          "Shared Secret: Both sender and receiver use the exact SAME key.",
+          "IV (Initialization Vector): A random coin toss so locking the same secret twice produces a different-looking box.",
+          "GCM Mode / AEAD Tag: A tamper-evident wax seal that breaks if an attacker tries to scratch or alter the box."
+        ]}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Left Interactive Panel */}
@@ -151,7 +169,10 @@ const SymmetricLab: React.FC = () => {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-mono uppercase text-gray-400 mb-2">Plaintext Message</label>
+                  <label className="block text-xs font-mono uppercase text-gray-400 mb-2 flex items-center">
+                    Plaintext Message
+                    <Eli5Tooltip term="Plaintext" simpleExplanation="Your original readable secret message before being scrambled by the cipher key." analogy="Unlocked letter inside the envelope" />
+                  </label>
                   <textarea
                     value={encPlaintext}
                     onChange={(e) => setEncPlaintext(e.target.value)}

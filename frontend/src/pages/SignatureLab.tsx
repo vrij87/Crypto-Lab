@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { CheckSquare, Edit3, ShieldCheck, ShieldAlert, Copy, Check, RefreshCw, AlertTriangle } from 'lucide-react';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
+import { Eli5Banner } from '../components/Eli5Banner';
+import { Eli5Tooltip } from '../components/Eli5Tooltip';
 
 const SignatureLab: React.FC = () => {
   const { markLabVisited, updateLabProgress } = useProgress();
@@ -145,7 +147,6 @@ const SignatureLab: React.FC = () => {
             Sign payloads with private keys, verify authenticity with public keys, and check integrity via the Sandbox.
           </p>
         </div>
-        
         <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
           {(['sign', 'verify', 'sandbox', 'concepts'] as const).map((tab) => (
             <button
@@ -162,6 +163,18 @@ const SignatureLab: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* ELI5 Banner */}
+      <Eli5Banner
+        title="Understanding Digital Signatures"
+        analogyTitle="The Royal Wax Signet Ring"
+        analogyDescription="Imagine a king stamping his unique signet ring into hot wax on a letter (Signing with Private Key). Anyone in the kingdom can compare the wax imprint against the public royal coat of arms (Verifying with Public Key). If a messenger changes even ONE word of the letter, the stamp breaks and verification fails!"
+        bulletPoints={[
+          "Authenticity: Proves who wrote the message (only the key owner has the signet ring).",
+          "Integrity: Proves the letter was not altered in transit.",
+          "Non-Repudiation: The sender cannot claim 'I didn't send that letter'."
+        ]}
+      />
 
       {/* Helper Keys Block */}
       <div className="glass-panel p-4 mb-6 bg-cyber-darker border border-pink-900/10 flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -191,7 +204,10 @@ const SignatureLab: React.FC = () => {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-mono uppercase text-gray-400 mb-2">Message To Sign</label>
+                  <label className="block text-xs font-mono uppercase text-gray-400 mb-2 flex items-center">
+                    Message To Sign
+                    <Eli5Tooltip term="Digital Signature" simpleExplanation="Creating a tamper-evident wax seal on your text using your secret signet ring (Private Key)." analogy="Wax seal on a royal letter" />
+                  </label>
                   <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}

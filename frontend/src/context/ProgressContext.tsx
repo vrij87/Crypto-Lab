@@ -335,6 +335,8 @@ interface ProgressContextType {
   openDrawer: () => void;
   closeDrawer: () => void;
   toggleDrawer: () => void;
+  isEli5Mode: boolean;
+  toggleEli5Mode: () => void;
   progress: ProgressState;
   notifications: ProgressNotification[];
   dismissNotification: (id: string) => void;
@@ -347,10 +349,18 @@ interface ProgressContextType {
 const ProgressContext = createContext<ProgressContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'cryptolab_user_progress_v1';
+const ELI5_STORAGE_KEY = 'cryptolab_eli5_mode';
 const BROADCAST_CHANNEL = 'cryptolab_progress_broadcast';
 
 export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isEli5Mode, setIsEli5Mode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(ELI5_STORAGE_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [notifications, setNotifications] = useState<ProgressNotification[]>([]);
   const [progress, setProgress] = useState<ProgressState>(() => {
     try {
@@ -525,6 +535,25 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
   };
 
+  const toggleEli5Mode = () => {
+    setIsEli5Mode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(ELI5_STORAGE_KEY, String(next));
+      } catch (e) {
+        console.error(e);
+      }
+      addToastNotification(
+        next ? '🐣 ELI5 Mode Activated' : '⚙️ Standard Mode Active',
+        next
+          ? 'Simplifying complex cryptographic jargon with real-world analogies!'
+          : 'Switched back to standard technical terminology.',
+        'lab'
+      );
+      return next;
+    });
+  };
+
   const resetProgress = () => {
     setProgress(DEFAULT_PROGRESS);
     localStorage.removeItem(STORAGE_KEY);
@@ -538,6 +567,8 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         openDrawer,
         closeDrawer,
         toggleDrawer,
+        isEli5Mode,
+        toggleEli5Mode,
         progress,
         notifications,
         dismissNotification,

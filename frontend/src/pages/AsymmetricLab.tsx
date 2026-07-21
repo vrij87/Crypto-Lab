@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Shield, Key, Lock, Unlock, Copy, Check, RefreshCw, Info } from 'lucide-react';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
+import { Eli5Banner } from '../components/Eli5Banner';
+import { Eli5Tooltip } from '../components/Eli5Tooltip';
 
 const AsymmetricLab: React.FC = () => {
   const { markLabVisited, updateLabProgress, recordAlgorithmLearned } = useProgress();
@@ -129,6 +131,18 @@ const AsymmetricLab: React.FC = () => {
         </div>
       </div>
 
+      {/* ELI5 Banner */}
+      <Eli5Banner
+        title="Understanding Asymmetric (Public Key) Cryptography"
+        analogyTitle="The Public Mailbox with Two Keys"
+        analogyDescription="Imagine you put an open padlock on a public mailbox. ANYONE in the world can drop a secret letter into the slot and snap the padlock shut (Public Key Encryption). But ONLY YOU hold the physical key to unlock the mailbox door (Private Key Decryption). You never need to share your secret key with anyone!"
+        bulletPoints={[
+          "Public Key (Mailbox Padlock): Published publicly for anyone to send you encrypted messages.",
+          "Private Key (House Key): Kept 100% secret by you to unlock received messages.",
+          "No Prior Key Exchange: Solves the problem of sharing secret keys over untrusted networks."
+        ]}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Left Panel */}
@@ -141,7 +155,10 @@ const AsymmetricLab: React.FC = () => {
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                 <div>
-                  <label className="block text-xs font-mono uppercase text-gray-400 mb-2">RSA Key Size (bits)</label>
+                  <label className="block text-xs font-mono uppercase text-gray-400 mb-2 flex items-center">
+                    RSA Key Size (bits)
+                    <Eli5Tooltip term="Key Size" simpleExplanation="How long and complex the prime numbers are. Larger keys are harder to hack but take longer to generate." analogy="Thicker steel on your mailbox padlock" />
+                  </label>
                   <select
                     value={keySize}
                     onChange={(e) => setKeySize(Number(e.target.value))}

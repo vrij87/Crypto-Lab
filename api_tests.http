@@ -1,0 +1,104 @@
+### Base URL Variable
+@baseUrl = http://127.0.0.1:8000
+
+### 1. Root Endpoint
+GET {{baseUrl}}/
+Accept: application/json
+
+### 2. Generate Hash (SHA256)
+POST {{baseUrl}}/api/hashing/hash
+Content-Type: application/json
+
+{
+  "text": "Hello CryptoLab!",
+  "algorithm": "SHA256"
+}
+
+### 3. Calculate Avalanche Effect
+POST {{baseUrl}}/api/hashing/avalanche
+Content-Type: application/json
+
+{
+  "text1": "CryptoLab",
+  "text2": "CryptoLab!",
+  "algorithm": "SHA256"
+}
+
+### 4. Password Strength & Entropy
+POST {{baseUrl}}/api/passwords/strength
+Content-Type: application/json
+
+{
+  "password": "P@ssw0rd2026!$"
+}
+
+### 5. Generate Salt
+POST {{baseUrl}}/api/passwords/generate-salt
+Content-Type: application/json
+
+### 6. Hash Password (Argon2id)
+POST {{baseUrl}}/api/passwords/hash
+Content-Type: application/json
+
+{
+  "password": "MySuperSecurePass123!",
+  "algorithm": "argon2id"
+}
+
+### 7. Generate Symmetric Key (AES-256)
+POST {{baseUrl}}/api/symmetric/generate-key
+Content-Type: application/json
+
+{
+  "algorithm": "AES",
+  "key_size": 256
+}
+
+### 8. Encrypt Message (AES-GCM)
+POST {{baseUrl}}/api/symmetric/encrypt
+Content-Type: application/json
+
+{
+  "plaintext": "Confidential Payload Data",
+  "key": "63617473617265636f6f6c313233343536373839303132333435363738393031",
+  "algorithm": "AES",
+  "mode": "GCM"
+}
+
+### 9. Generate RSA Keypair
+POST {{baseUrl}}/api/asymmetric/generate-rsa
+Content-Type: application/json
+
+{
+  "key_size": 2048
+}
+
+### 10. Analyze SSL Certificate
+POST {{baseUrl}}/api/certificate/analyze
+Content-Type: application/json
+
+{
+  "url": "google.com"
+}
+
+### 11. Explorer Supported Algorithms
+GET {{baseUrl}}/api/explorer/algorithms
+Accept: application/json
+
+### 12. List Challenges
+GET {{baseUrl}}/api/challenges/list
+Accept: application/json
+
+### 13. Get User Status
+GET {{baseUrl}}/api/challenges/status/testuser
+Accept: application/json
+
+### 14. Submit Challenge Answer
+POST {{baseUrl}}/api/challenges/submit
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "challenge_id": 1,
+  "answer_index": 1
+}

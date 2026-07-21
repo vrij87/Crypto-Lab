@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Hash, Copy, Check, RefreshCw, BarChart2, ShieldAlert } from 'lucide-react';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
+import { Eli5Banner } from '../components/Eli5Banner';
+import { Eli5Tooltip } from '../components/Eli5Tooltip';
 
 const HashingLab: React.FC = () => {
   const { markLabVisited, updateLabProgress, recordAlgorithmLearned } = useProgress();
@@ -162,6 +164,18 @@ const HashingLab: React.FC = () => {
         </div>
       </div>
 
+      {/* ELI5 Banner */}
+      <Eli5Banner
+        title="Understanding Hashing Functions"
+        analogyTitle="The Digital Food Processor"
+        analogyDescription="Imagine throwing fruits into a food processor. You press start and get a unique smoothie (a Hash Digest). You can NEVER un-blend a smoothie back into whole apples or bananas (One-Way property). If you change just 1 tiny seed, the entire smoothie color and flavor changes completely (Avalanche Effect)!"
+        bulletPoints={[
+          "One-Way: Easy to create a hash from text, impossible to reverse a hash back to text.",
+          "Unique Fingerprint: The same text always produces the exact same hash output.",
+          "Avalanche Effect: Changing 'Cat' to 'cat' produces a 100% different hash."
+        ]}
+      />
+
       {/* Tab Contents */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
@@ -187,7 +201,10 @@ const HashingLab: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-mono uppercase text-gray-400 mb-2">Select Hash Algorithm</label>
+                    <label className="block text-xs font-mono uppercase text-gray-400 mb-2 flex items-center">
+                      Select Hash Algorithm
+                      <Eli5Tooltip term="Hash Algorithm" simpleExplanation="A digital blender that turns your text into a unique fixed-length fingerprint string." analogy="Smoothie recipe fingerprint" />
+                    </label>
                     <select
                       value={genAlg}
                       onChange={(e) => setGenAlg(e.target.value)}

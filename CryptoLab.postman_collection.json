@@ -1,0 +1,492 @@
+{
+	"info": {
+		"_postman_id": "c8f1a23b-59d4-4e2b-8a8b-crypto-lab-v1",
+		"name": "CryptoLab API Collection",
+		"description": "Complete API collection for CryptoLab FastAPI backend. Server default: http://127.0.0.1:8000",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "System",
+			"item": [
+				{
+					"name": "Root Welcome",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "1. Hashing & Avalanche",
+			"item": [
+				{
+					"name": "Generate Hash (SHA-256)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"text\": \"Hello CryptoLab!\",\n  \"algorithm\": \"SHA256\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/hashing/hash",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"hashing",
+								"hash"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Calculate Avalanche Effect",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"text1\": \"CryptoLab\",\n  \"text2\": \"CryptoLab!\",\n  \"algorithm\": \"SHA256\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/hashing/avalanche",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"hashing",
+								"avalanche"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Hash Rate Benchmark",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"text\": \"Benchmark String\",\n  \"algorithm\": \"SHA256\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/hashing/benchmark",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"hashing",
+								"benchmark"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Password Security",
+			"item": [
+				{
+					"name": "Password Strength & Entropy",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"password\": \"P@ssw0rd2026!$\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/passwords/strength",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"passwords",
+								"strength"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Generate Cryptographic Salt",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/passwords/generate-salt",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"passwords",
+								"generate-salt"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Password Hashing (Argon2 / bcrypt / PBKDF2)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"password\": \"MySuperSecurePass123!\",\n  \"algorithm\": \"argon2id\",\n  \"salt\": \"4a9f8b2c1d3e5f6a7b8c9d0e1f2a3b4c\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/passwords/hash",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"passwords",
+								"hash"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Symmetric Encryption",
+			"item": [
+				{
+					"name": "Generate Key",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"algorithm\": \"AES\",\n  \"key_size\": 256\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/symmetric/generate-key",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"symmetric",
+								"generate-key"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Encrypt Message (AES-GCM)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"plaintext\": \"Confidential Payload Data\",\n  \"key\": \"63617473617265636f6f6c313233343536373839303132333435363738393031\",\n  \"algorithm\": \"AES\",\n  \"mode\": \"GCM\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/symmetric/encrypt",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"symmetric",
+								"encrypt"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Decrypt Ciphertext",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"ciphertext\": \"your_ciphertext_hex_here\",\n  \"key\": \"63617473617265636f6f6c313233343536373839303132333435363738393031\",\n  \"iv\": \"your_iv_hex_here\",\n  \"algorithm\": \"AES\",\n  \"mode\": \"GCM\",\n  \"tag\": \"your_tag_hex_here\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/symmetric/decrypt",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"symmetric",
+								"decrypt"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. Asymmetric Encryption",
+			"item": [
+				{
+					"name": "Generate RSA Keypair",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"key_size\": 2048\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/asymmetric/generate-rsa",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"asymmetric",
+								"generate-rsa"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5. Digital Signatures",
+			"item": [
+				{
+					"name": "Sign Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"Important Financial Transaction\",\n  \"private_key\": \"PEM_PRIVATE_KEY_STRING\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/signatures/sign",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"signatures",
+								"sign"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "6. Certificates & Domain Inspector",
+			"item": [
+				{
+					"name": "Analyze Domain SSL Certificate",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"url\": \"google.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/certificate/analyze",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"certificate",
+								"analyze"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "7. Cipher Explorer & Visualizer",
+			"item": [
+				{
+					"name": "Get Supported Explorer Algorithms",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/explorer/algorithms",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"explorer",
+								"algorithms"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "8. Challenges & Quizzes",
+			"item": [
+				{
+					"name": "List Challenges",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/challenges/list",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"challenges",
+								"list"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/challenges/status/student1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"challenges",
+								"status",
+								"student1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Challenge Answer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"student1\",\n  \"challenge_id\": 1,\n  \"answer_index\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/challenges/submit",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"challenges",
+								"submit"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://127.0.0.1:8000",
+			"type": "string"
+		}
+	]
+}
