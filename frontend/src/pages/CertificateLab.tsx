@@ -13,7 +13,6 @@ const CertificateLab: React.FC = () => {
 
   useEffect(() => {
     markLabVisited('certificates', 'Certificate Explorer', '/labs/certificates');
-    updateLabProgress('certificates', 100);
   }, []);
 
   const analyzeCert = async () => {
@@ -25,6 +24,7 @@ const CertificateLab: React.FC = () => {
       const response = await api.post('/certificate/analyze', { url: urlInput });
       if (response.data.success) {
         setCertData(response.data);
+        updateLabProgress('certificates', 100);
       } else {
         setError(response.data.error || 'Failed to parse certificate.');
       }

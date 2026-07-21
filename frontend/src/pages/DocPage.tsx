@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BookOpen, Book, Terminal, HelpCircle, ChevronRight } from 'lucide-react';
+import { useProgress } from '../context/ProgressContext';
 
 const DocPage: React.FC = () => {
+  const { markLabVisited } = useProgress();
   const [activeSection, setActiveSection] = useState<'start' | 'labs' | 'api' | 'faq'>('start');
+
+  useEffect(() => {
+    markLabVisited('intro', 'Cryptography Fundamentals', '/docs');
+  }, []);
 
   const menuItems = [
     { id: 'start', name: 'Getting Started', icon: BookOpen },

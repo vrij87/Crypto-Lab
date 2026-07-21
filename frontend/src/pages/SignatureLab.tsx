@@ -12,8 +12,14 @@ const SignatureLab: React.FC = () => {
 
   useEffect(() => {
     markLabVisited('signatures', 'Digital Signature Lab', '/labs/signatures');
-    updateLabProgress('signatures', 100);
   }, []);
+
+  const handleTabChange = (tab: 'sign' | 'verify' | 'sandbox' | 'concepts') => {
+    setActiveTab(tab);
+    if (tab === 'verify') updateLabProgress('signatures', 60);
+    if (tab === 'sandbox') updateLabProgress('signatures', 85);
+    if (tab === 'concepts') updateLabProgress('signatures', 100);
+  };
 
   // Key pair sharing
   const [privKey, setPrivKey] = useState('');
@@ -46,6 +52,7 @@ const SignatureLab: React.FC = () => {
       const response = await api.post('/asymmetric/generate-rsa', { key_size: 2048 });
       setPrivKey(response.data.private_key);
       setPubKey(response.data.public_key);
+      updateLabProgress('signatures', 40);
       
       // Auto fill verify fields
       setVerifyPubKey(response.data.public_key);
@@ -69,6 +76,7 @@ const SignatureLab: React.FC = () => {
         private_key: privKey
       });
       setSignature(response.data.signature);
+      updateLabProgress('signatures', 70);
       
       // Auto fill validation
       setVerifyMsg(message);
@@ -98,6 +106,7 @@ const SignatureLab: React.FC = () => {
         public_key: verifyPubKey
       });
       setVerifyResult(response.data.valid);
+      updateLabProgress('signatures', 100);
     } catch (e) {
       setVerifyResult(false);
     } finally {
@@ -108,6 +117,7 @@ const SignatureLab: React.FC = () => {
   // Auto validation for Sandbox tab
   useEffect(() => {
     if (activeTab === 'sandbox' && sandMsg && sandSig && sandPubKey) {
+      updateLabProgress('signatures', 90);
       const runSandboxCheck = async () => {
         setSandChecking(true);
         try {
@@ -152,7 +162,7 @@ const SignatureLab: React.FC = () => {
           {(['sign', 'verify', 'sandbox', 'concepts'] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => handleTabChange(tab)}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${
                 activeTab === tab 
                   ? 'bg-pink-500 text-white shadow-[0_0_10px_rgba(236,72,153,0.3)]' 

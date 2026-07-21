@@ -12,8 +12,14 @@ const HashingLab: React.FC = () => {
 
   useEffect(() => {
     markLabVisited('hashing', 'Hashing Laboratory', '/labs/hashing');
-    updateLabProgress('hashing', 100);
   }, []);
+
+  const handleTabChange = (tab: 'generator' | 'compare' | 'avalanche' | 'benchmark') => {
+    setActiveTab(tab);
+    if (tab === 'compare') updateLabProgress('hashing', 50);
+    if (tab === 'avalanche') updateLabProgress('hashing', 75);
+    if (tab === 'benchmark') updateLabProgress('hashing', 90);
+  };
 
   // Tab 1: Generator State
   const [genInput, setGenInput] = useState('Hello, CryptoLab!');
@@ -60,6 +66,7 @@ const HashingLab: React.FC = () => {
           const res2 = await api.post('/hashing/hash', { text: compInput2, algorithm: compAlg });
           setCompHash1(res1.data.hash);
           setCompHash2(res2.data.hash);
+          updateLabProgress('hashing', 50);
         } catch (e) {
           console.error(e);
         }
@@ -82,6 +89,7 @@ const HashingLab: React.FC = () => {
       setGenOutput(response.data.hash);
       const cleanName = genAlg.replace('-', '').replace(' ', '');
       recordAlgorithmLearned(cleanName);
+      updateLabProgress('hashing', 35);
     } catch (err) {
       console.error(err);
     } finally {
@@ -104,6 +112,7 @@ const HashingLab: React.FC = () => {
         algorithm: avaAlg
       });
       setAvaResult(response.data);
+      updateLabProgress('hashing', 80);
     } catch (err) {
       console.error(err);
     } finally {
@@ -119,6 +128,7 @@ const HashingLab: React.FC = () => {
         algorithm: 'SHA-256'
       });
       setBenchData(response.data);
+      updateLabProgress('hashing', 100);
     } catch (err) {
       console.error(err);
     } finally {
@@ -152,7 +162,7 @@ const HashingLab: React.FC = () => {
           {(['generator', 'compare', 'avalanche', 'benchmark'] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => handleTabChange(tab)}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${
                 activeTab === tab 
                   ? 'bg-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.3)]' 

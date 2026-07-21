@@ -18,7 +18,7 @@ import {
   Flame,
   Check,
 } from 'lucide-react';
-import { useProgress } from '../context/ProgressContext';
+import { useProgress, formatRelativeTime } from '../context/ProgressContext';
 
 const CryptoJourneyDrawer: React.FC = () => {
   const { isDrawerOpen, closeDrawer, progress, resetProgress } = useProgress();
@@ -573,7 +573,7 @@ const CryptoJourneyDrawer: React.FC = () => {
                         </div>
                         <span className="text-xs font-semibold text-gray-200">{item.name}</span>
                       </div>
-                      <span className="text-[11px] text-gray-400">{item.timestamp}</span>
+                      <span className="text-[11px] text-cyan-400 font-medium">{formatRelativeTime(item.timestamp)}</span>
                     </div>
                   ))}
                 </div>

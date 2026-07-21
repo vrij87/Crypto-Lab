@@ -26,8 +26,12 @@ const Explorer: React.FC = () => {
 
   useEffect(() => {
     markLabVisited('explorer', 'Algorithm Explorer', '/explorer');
-    updateLabProgress('explorer', 100);
   }, []);
+
+  const handleSelectAlgorithm = (algKey: string) => {
+    setSelectedAlg(algKey);
+    updateLabProgress('explorer', 100);
+  };
 
   useEffect(() => {
     const fetchAlgorithms = async () => {
@@ -134,7 +138,7 @@ const Explorer: React.FC = () => {
                   filteredKeys.map((key) => (
                     <button
                       key={key}
-                      onClick={() => setSelectedAlg(key)}
+                      onClick={() => handleSelectAlgorithm(key)}
                       className={`w-full text-left p-3 rounded-lg border transition-all text-xs flex justify-between items-center ${
                         selectedAlg === key
                           ? 'bg-amber-950/20 border-amber-500/30 text-white'

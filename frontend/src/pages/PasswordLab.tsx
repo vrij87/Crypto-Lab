@@ -14,8 +14,14 @@ const PasswordLab: React.FC = () => {
 
   useEffect(() => {
     markLabVisited('passwords', 'Password Security Lab', '/labs/passwords');
-    updateLabProgress('passwords', 100);
   }, []);
+
+  const handleTabChange = (tab: 'strength' | 'hash' | 'salts' | 'standards') => {
+    setActiveTab(tab);
+    if (tab === 'hash') updateLabProgress('passwords', 60);
+    if (tab === 'salts') updateLabProgress('passwords', 85);
+    if (tab === 'standards') updateLabProgress('passwords', 100);
+  };
 
   // Tab 1: Strength Checker
   const [passwordInput, setPasswordInput] = useState('');
@@ -45,6 +51,7 @@ const PasswordLab: React.FC = () => {
         try {
           const response = await api.post('/passwords/strength', { password: passwordInput });
           setStrengthResult(response.data);
+          updateLabProgress('passwords', 40);
         } catch (e) {
           console.error(e);
         }
@@ -58,6 +65,7 @@ const PasswordLab: React.FC = () => {
     try {
       const res = await api.post('/passwords/generate-salt');
       setHashSalt(res.data.salt);
+      updateLabProgress('passwords', 65);
     } catch (e) {
       console.error(e);
     }
@@ -74,6 +82,7 @@ const PasswordLab: React.FC = () => {
       });
       setHashResult(res.data);
       recordAlgorithmLearned(hashAlg.toUpperCase());
+      updateLabProgress('passwords', 75);
     } catch (e) {
       console.error(e);
     } finally {
@@ -84,6 +93,7 @@ const PasswordLab: React.FC = () => {
   const runSimulation = () => {
     setSimState('hashing');
     setSimLogs([`[INIT] Registering new user account...`]);
+    updateLabProgress('passwords', 100);
     
     setTimeout(() => {
       if (!useSalt) {
@@ -167,7 +177,7 @@ const PasswordLab: React.FC = () => {
           {(['strength', 'hash', 'salts', 'standards'] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => handleTabChange(tab)}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${
                 activeTab === tab 
                   ? 'bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]' 

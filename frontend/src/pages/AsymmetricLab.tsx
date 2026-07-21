@@ -12,8 +12,15 @@ const AsymmetricLab: React.FC = () => {
 
   useEffect(() => {
     markLabVisited('asymmetric', 'RSA & ECC Lab', '/labs/asymmetric');
-    updateLabProgress('asymmetric', 100);
   }, []);
+
+  const handleTabChange = (tab: 'keygen' | 'encrypt' | 'decrypt' | 'flow' | 'about') => {
+    setActiveTab(tab);
+    if (tab === 'encrypt') updateLabProgress('asymmetric', 55);
+    if (tab === 'decrypt') updateLabProgress('asymmetric', 75);
+    if (tab === 'flow') updateLabProgress('asymmetric', 90);
+    if (tab === 'about') updateLabProgress('asymmetric', 100);
+  };
 
   // Keygen state
   const [keySize, setKeySize] = useState(2048);
@@ -42,6 +49,7 @@ const AsymmetricLab: React.FC = () => {
       setPrivateKey(response.data.private_key);
       setPublicKey(response.data.public_key);
       recordAlgorithmLearned('RSA2048');
+      updateLabProgress('asymmetric', 40);
       
       // Auto-populate helper variables
       setEncPublicKey(response.data.public_key);
@@ -66,6 +74,7 @@ const AsymmetricLab: React.FC = () => {
       });
       setEncCiphertext(response.data.ciphertext);
       setDecCiphertext(response.data.ciphertext);
+      updateLabProgress('asymmetric', 75);
     } catch (e: any) {
       alert(e.response?.data?.detail || 'Encryption failed. Check if public key format is valid PEM.');
     } finally {
@@ -87,6 +96,7 @@ const AsymmetricLab: React.FC = () => {
         private_key: decPrivateKey
       });
       setDecPlaintext(response.data.plaintext);
+      updateLabProgress('asymmetric', 100);
     } catch (e: any) {
       setDecError(e.response?.data?.detail || 'Decryption failed. Check key padding or ciphertext validity.');
     } finally {
@@ -119,7 +129,7 @@ const AsymmetricLab: React.FC = () => {
           {(['keygen', 'encrypt', 'decrypt', 'flow', 'about'] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => handleTabChange(tab)}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${
                 activeTab === tab 
                   ? 'bg-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.3)]' 

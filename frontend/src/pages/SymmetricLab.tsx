@@ -12,8 +12,14 @@ const SymmetricLab: React.FC = () => {
 
   useEffect(() => {
     markLabVisited('symmetric', 'AES Encryption Lab', '/labs/symmetric');
-    updateLabProgress('symmetric', 100);
   }, []);
+
+  const handleTabChange = (tab: 'encrypt' | 'decrypt' | 'flowchart' | 'about') => {
+    setActiveTab(tab);
+    if (tab === 'decrypt') updateLabProgress('symmetric', 60);
+    if (tab === 'flowchart') updateLabProgress('symmetric', 85);
+    if (tab === 'about') updateLabProgress('symmetric', 100);
+  };
 
   // Encryption state
   const [encPlaintext, setEncPlaintext] = useState('My secret cryptographic message...');
@@ -47,6 +53,7 @@ const SymmetricLab: React.FC = () => {
       } else {
         setDecKey(response.data.key);
       }
+      updateLabProgress('symmetric', 40);
     } catch (e) {
       console.error(e);
     }
@@ -68,6 +75,7 @@ const SymmetricLab: React.FC = () => {
       });
       setEncResult(response.data);
       recordAlgorithmLearned(`${encAlg}${encKeySize}`);
+      updateLabProgress('symmetric', 75);
       
       // Auto-populate decryption fields for testing convenience
       setDecCiphertext(response.data.ciphertext);
@@ -101,6 +109,7 @@ const SymmetricLab: React.FC = () => {
         tag: decTag || undefined
       });
       setDecResult(response.data.plaintext);
+      updateLabProgress('symmetric', 100);
     } catch (e: any) {
       setDecError(e.response?.data?.detail || 'Decryption failed. Check keys or IV integrity.');
     } finally {
@@ -133,7 +142,7 @@ const SymmetricLab: React.FC = () => {
           {(['encrypt', 'decrypt', 'flowchart', 'about'] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => handleTabChange(tab)}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${
                 activeTab === tab 
                   ? 'bg-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]' 

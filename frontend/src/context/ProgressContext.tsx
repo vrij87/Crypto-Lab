@@ -39,7 +39,7 @@ export interface RecentVisit {
   id: string;
   name: string;
   path: string;
-  timestamp: string;
+  timestamp: number | string;
 }
 
 export interface CurrentGoal {
@@ -72,17 +72,37 @@ export interface ProgressState {
   achievements: AchievementBadge[];
 }
 
+export const formatRelativeTime = (timestamp: number | string): string => {
+  if (typeof timestamp === 'string') {
+    if (timestamp === 'Just now' || timestamp.includes('ago') || timestamp.includes('Yesterday')) {
+      return timestamp;
+    }
+    const parsed = Date.parse(timestamp);
+    if (isNaN(parsed)) return timestamp;
+    timestamp = parsed;
+  }
+  
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+};
+
 const DEFAULT_PROGRESS: ProgressState = {
-  overallPercentage: 62,
-  level: 'Crypto Explorer',
-  labsCompletedCount: 4,
+  overallPercentage: 0,
+  level: 'Crypto Beginner',
+  labsCompletedCount: 0,
   totalLabs: 8,
   currentGoal: {
-    title: 'Complete Password Security Lab',
-    labName: 'Password Security Lab',
-    path: '/labs/passwords',
+    title: 'Explore Hashing Laboratory',
+    labName: 'Hashing Laboratory',
+    path: '/labs/hashing',
     estMinutes: 15,
-    progress: 75,
+    progress: 0,
   },
   roadmap: [
     {
@@ -90,7 +110,7 @@ const DEFAULT_PROGRESS: ProgressState = {
       name: 'Cryptography Fundamentals',
       category: 'Overview',
       path: '/docs',
-      status: 'completed',
+      status: 'in_progress',
       estTime: '10 min',
       description: 'Foundational concepts, ciphers, and security principles.',
     },
@@ -99,7 +119,7 @@ const DEFAULT_PROGRESS: ProgressState = {
       name: 'Hashing Lab',
       category: 'Hashing',
       path: '/labs/hashing',
-      status: 'completed',
+      status: 'in_progress',
       estTime: '15 min',
       description: 'SHA-256, MD5, SHA-3, HMAC, and avalanche effect.',
     },
@@ -108,7 +128,7 @@ const DEFAULT_PROGRESS: ProgressState = {
       name: 'Password Security Lab',
       category: 'Passwords',
       path: '/labs/passwords',
-      status: 'completed',
+      status: 'locked',
       estTime: '20 min',
       description: 'Argon2id, bcrypt, PBKDF2, scrypt & entropy analysis.',
     },
@@ -117,7 +137,7 @@ const DEFAULT_PROGRESS: ProgressState = {
       name: 'AES Encryption Lab',
       category: 'Symmetric',
       path: '/labs/symmetric',
-      status: 'completed',
+      status: 'locked',
       estTime: '25 min',
       description: 'AES-CBC, AES-GCM, ChaCha20-Poly1305 modes.',
     },
@@ -126,7 +146,7 @@ const DEFAULT_PROGRESS: ProgressState = {
       name: 'RSA & ECC Lab',
       category: 'Asymmetric',
       path: '/labs/asymmetric',
-      status: 'in_progress',
+      status: 'locked',
       estTime: '30 min',
       description: 'RSA 2048/4096 & ECC SECP256k1 key generation and encryption.',
     },
@@ -159,50 +179,50 @@ const DEFAULT_PROGRESS: ProgressState = {
     },
   ],
   labProgress: {
-    hashing: 100,
-    passwords: 100,
-    symmetric: 100,
-    asymmetric: 65,
-    signatures: 25,
-    certificates: 10,
-    explorer: 80,
-    challenges: 40,
+    hashing: 0,
+    passwords: 0,
+    symmetric: 0,
+    asymmetric: 0,
+    signatures: 0,
+    certificates: 0,
+    explorer: 0,
+    challenges: 0,
   },
   algorithms: [
     {
       name: 'SHA256',
       type: 'Hash Function',
-      status: 'completed',
+      status: 'learning',
       desc: '256-bit secure cryptographic hash algorithm used in Bitcoin & TLS.',
-      badgeColor: 'emerald',
+      badgeColor: 'cyan',
     },
     {
       name: 'SHA512',
       type: 'Hash Function',
-      status: 'completed',
+      status: 'learning',
       desc: '512-bit digest function for high performance 64-bit architectures.',
-      badgeColor: 'emerald',
+      badgeColor: 'cyan',
     },
     {
       name: 'SHA3',
       type: 'Keccak Hash',
-      status: 'completed',
+      status: 'learning',
       desc: 'NIST sponge-construction standard immune to length extension.',
-      badgeColor: 'emerald',
+      badgeColor: 'cyan',
     },
     {
       name: 'MD5',
       type: 'Legacy Hash',
-      status: 'completed',
+      status: 'learning',
       desc: '128-bit broken hash studied for historic collision vulnerabilities.',
-      badgeColor: 'emerald',
+      badgeColor: 'gray',
     },
     {
       name: 'Argon2',
       type: 'KDF / Password',
-      status: 'completed',
+      status: 'learning',
       desc: 'Memory-hard password hashing winner of PHC (Argon2id mode).',
-      badgeColor: 'emerald',
+      badgeColor: 'cyan',
     },
     {
       name: 'AES256',
@@ -220,104 +240,46 @@ const DEFAULT_PROGRESS: ProgressState = {
     },
   ],
   skills: [
-    {
-      name: 'Hashing',
-      category: 'Core Primitive',
-      level: 95,
-      badge: 'Master',
-    },
-    {
-      name: 'Password Security',
-      category: 'Authentication',
-      level: 88,
-      badge: 'Expert',
-    },
-    {
-      name: 'Symmetric Encryption',
-      category: 'Confidentiality',
-      level: 82,
-      badge: 'Advanced',
-    },
-    {
-      name: 'Asymmetric Encryption',
-      category: 'Public Key Infra',
-      level: 60,
-      badge: 'Intermediate',
-    },
-    {
-      name: 'Digital Signatures',
-      category: 'Non-Repudiation',
-      level: 45,
-      badge: 'Practitioner',
-    },
-    {
-      name: 'Cryptography Fundamentals',
-      category: 'Theory',
-      level: 90,
-      badge: 'Master',
-    },
+    { name: 'Hashing', category: 'Core Primitive', level: 0, badge: 'Novice' },
+    { name: 'Password Security', category: 'Authentication', level: 0, badge: 'Novice' },
+    { name: 'Symmetric Encryption', category: 'Confidentiality', level: 0, badge: 'Novice' },
+    { name: 'Asymmetric Encryption', category: 'Public Key Infra', level: 0, badge: 'Novice' },
+    { name: 'Digital Signatures', category: 'Non-Repudiation', level: 0, badge: 'Novice' },
+    { name: 'Cryptography Fundamentals', category: 'Theory', level: 0, badge: 'Novice' },
   ],
-  recentVisited: [
-    {
-      id: 'asymmetric',
-      name: 'RSA & ECC Lab',
-      path: '/labs/asymmetric',
-      timestamp: '15 minutes ago',
-    },
-    {
-      id: 'symmetric',
-      name: 'AES Encryption Lab',
-      path: '/labs/symmetric',
-      timestamp: '2 hours ago',
-    },
-    {
-      id: 'passwords',
-      name: 'Password Security Lab',
-      path: '/labs/passwords',
-      timestamp: 'Yesterday',
-    },
-    {
-      id: 'hashing',
-      name: 'Hashing Lab',
-      path: '/labs/hashing',
-      timestamp: '2 days ago',
-    },
-  ],
+  recentVisited: [],
   achievements: [
     {
       id: 'beginner',
       title: 'Crypto Beginner',
       iconName: 'Shield',
-      description: 'Completed introduction to cryptographic primitives & safety principles.',
-      status: 'unlocked',
-      unlockedDate: 'July 18, 2026',
-      progressPercent: 100,
+      description: 'Started introduction to cryptographic primitives & safety principles.',
+      status: 'in_progress',
+      progressPercent: 20,
     },
     {
       id: 'hash_master',
       title: 'Hash Master',
       iconName: 'Zap',
       description: 'Mastered SHA-256, SHA-3, HMAC & Avalanche effect calculations.',
-      status: 'unlocked',
-      unlockedDate: 'July 19, 2026',
-      progressPercent: 100,
+      status: 'locked',
+      progressPercent: 0,
     },
     {
       id: 'enc_explorer',
       title: 'Encryption Explorer',
       iconName: 'Lock',
       description: 'Configured AES-GCM & ChaCha20-Poly1305 symmetric authenticated ciphers.',
-      status: 'unlocked',
-      unlockedDate: 'July 20, 2026',
-      progressPercent: 100,
+      status: 'locked',
+      progressPercent: 0,
     },
     {
       id: 'sec_enthusiast',
       title: 'Security Enthusiast',
       iconName: 'Award',
       description: 'Analyzed Argon2id memory hardness and password entropy formulas.',
-      status: 'in_progress',
-      progressPercent: 75,
+      status: 'locked',
+      progressPercent: 0,
     },
     {
       id: 'cipher_sleuth',
@@ -325,7 +287,7 @@ const DEFAULT_PROGRESS: ProgressState = {
       iconName: 'Trophy',
       description: 'Solved all gamified cryptography challenges with 100% accuracy.',
       status: 'locked',
-      progressPercent: 40,
+      progressPercent: 0,
     },
   ],
 };
@@ -407,7 +369,8 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        return { ...DEFAULT_PROGRESS, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        return { ...DEFAULT_PROGRESS, ...parsed };
       }
     } catch {
       // ignore
@@ -485,12 +448,53 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         id,
         name,
         path,
-        timestamp: 'Just now',
+        timestamp: Date.now(),
       };
+
+      const currentPercent = prev.labProgress[id] || 0;
+      const initialPercent = Math.max(currentPercent, 20);
+      const updatedLabProgress = { ...prev.labProgress, [id]: initialPercent };
+
+      const labValues = Object.values(updatedLabProgress);
+      const avg = Math.round(labValues.reduce((a, b) => a + b, 0) / (labValues.length || 1));
+
+      let level = 'Crypto Beginner';
+      if (avg >= 80) level = 'Crypto Master';
+      else if (avg >= 55) level = 'Crypto Explorer';
+      else if (avg >= 30) level = 'Crypto Practitioner';
+
+      const updatedRoadmap = prev.roadmap.map((mod) => {
+        if (mod.id === id) {
+          const modStatus = initialPercent >= 100 ? ('completed' as const) : ('in_progress' as const);
+          return { ...mod, status: modStatus };
+        }
+        return mod;
+      });
+
+      const labsCompleted = updatedRoadmap.filter((m) => m.status === 'completed').length;
+
+      const currentGoal: CurrentGoal =
+        initialPercent < 100
+          ? {
+              title: `Complete ${name}`,
+              labName: name,
+              path,
+              estMinutes: 15,
+              progress: initialPercent,
+            }
+          : prev.currentGoal;
+
       const newState: ProgressState = {
         ...prev,
         recentVisited: [newVisit, ...filtered.slice(0, 4)],
+        labProgress: updatedLabProgress,
+        overallPercentage: avg,
+        level,
+        labsCompletedCount: labsCompleted,
+        roadmap: updatedRoadmap,
+        currentGoal,
       };
+
       notifyStateChange(newState);
       return newState;
     });
@@ -500,27 +504,32 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setProgress((prev) => {
       const currentPercent = prev.labProgress[id] || 0;
       const newPercent = Math.min(100, Math.max(currentPercent, percent));
-      
-      if (newPercent === currentPercent) return prev; // No change needed
+
+      if (newPercent === currentPercent && prev.labProgress[id] !== undefined && prev.labProgress[id] > 0) {
+        return prev;
+      }
 
       const updatedLabs = { ...prev.labProgress, [id]: newPercent };
-      
-      // Re-calculate average & level
       const labValues = Object.values(updatedLabs);
       const avg = Math.round(labValues.reduce((a, b) => a + b, 0) / (labValues.length || 1));
-      
-      let level = 'Crypto Beginner';
-      if (avg >= 85) level = 'Crypto Master';
-      else if (avg >= 60) level = 'Crypto Explorer';
-      else if (avg >= 35) level = 'Crypto Practitioner';
 
-      // Update roadmap module status dynamically
+      let level = 'Crypto Beginner';
+      if (avg >= 80) level = 'Crypto Master';
+      else if (avg >= 55) level = 'Crypto Explorer';
+      else if (avg >= 30) level = 'Crypto Practitioner';
+
+      let nextLabPath = prev.currentGoal.path;
+      let nextLabTitle = prev.currentGoal.title;
+      let nextLabName = prev.currentGoal.labName;
+
       const updatedRoadmap = prev.roadmap.map((mod, idx, arr) => {
         if (mod.id === id) {
           const modStatus = newPercent >= 100 ? ('completed' as const) : ('in_progress' as const);
-          // Unlock next module if completed
           if (newPercent >= 100 && arr[idx + 1] && arr[idx + 1].status === 'locked') {
             arr[idx + 1].status = 'in_progress';
+            nextLabPath = arr[idx + 1].path;
+            nextLabTitle = `Complete ${arr[idx + 1].name}`;
+            nextLabName = arr[idx + 1].name;
           }
           return { ...mod, status: modStatus };
         }
@@ -529,7 +538,6 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       const labsCompleted = updatedRoadmap.filter((m) => m.status === 'completed').length;
 
-      // Toast notification if lab newly completed
       if (newPercent >= 100 && currentPercent < 100) {
         addToastNotification('🎉 Lab Completed!', `You reached 100% completion in ${id.toUpperCase()} Lab!`, 'lab');
       }
@@ -538,6 +546,73 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         addToastNotification('🏆 Level Up!', `Congratulations! You achieved level: ${level}`, 'level');
       }
 
+      const updatedAchievements = prev.achievements.map((ach) => {
+        if (ach.id === 'beginner' && avg >= 15 && ach.status !== 'unlocked') {
+          return {
+            ...ach,
+            status: 'unlocked' as const,
+            progressPercent: 100,
+            unlockedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          };
+        }
+        if (ach.id === 'hash_master' && updatedLabs['hashing'] >= 100 && ach.status !== 'unlocked') {
+          return {
+            ...ach,
+            status: 'unlocked' as const,
+            progressPercent: 100,
+            unlockedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          };
+        }
+        if (ach.id === 'enc_explorer' && updatedLabs['symmetric'] >= 100 && ach.status !== 'unlocked') {
+          return {
+            ...ach,
+            status: 'unlocked' as const,
+            progressPercent: 100,
+            unlockedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          };
+        }
+        if (ach.id === 'sec_enthusiast' && updatedLabs['passwords'] >= 100 && ach.status !== 'unlocked') {
+          return {
+            ...ach,
+            status: 'unlocked' as const,
+            progressPercent: 100,
+            unlockedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          };
+        }
+        if (ach.id === 'cipher_sleuth' && updatedLabs['challenges'] >= 100 && ach.status !== 'unlocked') {
+          return {
+            ...ach,
+            status: 'unlocked' as const,
+            progressPercent: 100,
+            unlockedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          };
+        }
+        return ach;
+      });
+
+      const updatedSkills = prev.skills.map((skill) => {
+        let newLvl = skill.level;
+        if (skill.name === 'Hashing' && updatedLabs['hashing']) newLvl = updatedLabs['hashing'];
+        if (skill.name === 'Password Security' && updatedLabs['passwords']) newLvl = updatedLabs['passwords'];
+        if (skill.name === 'Symmetric Encryption' && updatedLabs['symmetric']) newLvl = updatedLabs['symmetric'];
+        if (skill.name === 'Asymmetric Encryption' && updatedLabs['asymmetric']) newLvl = updatedLabs['asymmetric'];
+        if (skill.name === 'Digital Signatures' && updatedLabs['signatures']) newLvl = updatedLabs['signatures'];
+        if (skill.name === 'Cryptography Fundamentals') newLvl = avg;
+        return {
+          ...skill,
+          level: newLvl,
+          badge: newLvl >= 85 ? 'Master' : newLvl >= 60 ? 'Expert' : newLvl >= 30 ? 'Practitioner' : 'Novice',
+        };
+      });
+
+      const currentGoal: CurrentGoal = {
+        title: newPercent < 100 ? `Complete ${id.toUpperCase()} Lab` : nextLabTitle,
+        labName: newPercent < 100 ? `${id.toUpperCase()} Lab` : nextLabName,
+        path: newPercent < 100 ? prev.currentGoal.path : nextLabPath,
+        estMinutes: 15,
+        progress: newPercent < 100 ? newPercent : 0,
+      };
+
       const newState: ProgressState = {
         ...prev,
         labProgress: updatedLabs,
@@ -545,6 +620,9 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         level,
         labsCompletedCount: labsCompleted,
         roadmap: updatedRoadmap,
+        achievements: updatedAchievements,
+        skills: updatedSkills,
+        currentGoal,
       };
 
       notifyStateChange(newState);
@@ -642,3 +720,4 @@ export const useProgress = () => {
   }
   return context;
 };
+
