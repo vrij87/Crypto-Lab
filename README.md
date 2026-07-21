@@ -234,12 +234,11 @@ Crypto-Lab/
 
 ## ☁️ Deployment
 
-### Frontend (GitHub Pages)
-The project includes a pre-configured GitHub Actions workflow ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)). When code is pushed to `main`, GitHub Pages automatically builds and deploys the static site to:  
-👉 **`https://vrij87.github.io/Crypto-Lab/`**
+### Vercel Online Deployment (Frontend + Serverless Backend)
+CryptoLab is deployed on Vercel as a full-stack application.
+👉 **[https://cryptolab-learning.vercel.app/](https://cryptolab-learning.vercel.app/)**
 
-### Backend (Render / Docker)
-Deploy the FastAPI backend for free using [`backend/render.yaml`](backend/render.yaml) or the [`backend/Dockerfile`](backend/Dockerfile) on [Render.com](https://render.com) or [Railway.app](https://railway.app).
+The configuration is managed automatically via [`vercel.json`](file:///d:/Crypto%20Lab/vercel.json) and [`api/index.py`](file:///d:/Crypto%20Lab/api/index.py). Any new push to `main` triggers a live deployment on Vercel.
 
 ---
 
