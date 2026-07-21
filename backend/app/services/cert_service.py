@@ -1,5 +1,6 @@
 import socket
 import ssl
+import ipaddress
 from datetime import datetime
 from urllib.parse import urlparse
 from typing import Dict, Any, List
@@ -22,9 +23,56 @@ class CertService:
             return url_or_host
 
     @staticmethod
+    def is_safe_public_host(hostname: str) -> tuple[bool, str]:
+        """
+        Validates hostname against IP resolution to prevent Server-Side Request Forgery (SSRF).
+        Blocks loopback, private, link-local, multicast, and cloud metadata addresses.
+        """
+        if not hostname:
+            return False, "Invalid or empty hostname."
+            
+        lower_host = hostname.lower()
+        if lower_host in ("localhost", "127.0.0.1", "0.0.0.0", "::1", "169.254.169.254"):
+            return False, f"Access to restricted or local host '{hostname}' is prohibited (SSRF Protection)."
+
+        try:
+            addr_info = socket.getaddrinfo(hostname, 443, socket.AF_UNSPEC, socket.SOCK_STREAM)
+            if not addr_info:
+                return False, f"Unable to resolve IP address for '{hostname}'."
+                
+            for family, socktype, proto, canonname, sockaddr in addr_info:
+                ip_str = sockaddr[0]
+                ip = ipaddress.ip_address(ip_str)
+                
+                if (
+                    ip.is_private
+                    or ip.is_loopback
+                    or ip.is_link_local
+                    or ip.is_multicast
+                    or ip.is_reserved
+                    or ip.is_unspecified
+                    or str(ip) == "169.254.169.254"
+                ):
+                    return False, f"Access to restricted or internal IP address '{ip_str}' is prohibited (SSRF Protection)."
+                    
+            return True, ""
+        except socket.gaierror:
+            return False, f"DNS Lookup failed for hostname '{hostname}'."
+        except Exception as e:
+            return False, f"Hostname security validation error: {str(e)}"
+
+    @staticmethod
     def analyze_certificate(url_or_host: str) -> Dict[str, Any]:
         """Fetches and analyzes the TLS/SSL certificate for the given domain."""
         hostname = CertService.clean_hostname(url_or_host)
+        
+        # SSRF Security Check prior to socket connection
+        is_safe, error_msg = CertService.is_safe_public_host(hostname)
+        if not is_safe:
+            return {
+                "success": False,
+                "error": error_msg
+            }
         
         context = ssl.create_default_context()
         # Set short timeout

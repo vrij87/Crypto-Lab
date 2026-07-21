@@ -84,8 +84,33 @@ Instead of reading static equations, users can interactively manipulate ciphers,
 ### **Backend**
 - **Framework**: FastAPI (Python 3.10+)
 - **Cryptography Engine**: Python `cryptography`, `pycryptodome`, `passlib`, `argon2-cffi`
-- **Database**: SQLite with SQLAlchemy ORM & Pydantic V2 schemas
-- **Testing**: `pytest` + Starlette TestClient
+- **Database**: SQLite / PostgreSQL with SQLAlchemy ORM & Pydantic V2 schemas
+- **Testing**: `pytest` + Starlette TestClient + Vitest Frontend Testing
+
+---
+
+## 🔒 Security Architecture & Defensive Controls
+
+1. **SSRF Mitigation (Certificate Explorer)**:
+   - User-supplied domains in `CertService` undergo pre-flight DNS resolution and IP validation using `ipaddress`.
+   - Blocks connections to loopback (`127.0.0.0/8`, `::1`), private networks (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), link-local (`169.254.0.0/16`), multicast, and cloud metadata endpoints (`169.254.169.254`).
+2. **Strict CORS Compliance**:
+   - Enforces specific `BACKEND_CORS_ORIGINS` whitelists with credential support (`allow_credentials=True`), adhering strictly to the W3C CORS specification (avoiding wildcard `*` with credentials).
+3. **Rate Limiting & Payload Size Protection**:
+   - **Payload Limit**: Request bodies exceeding 1 MB (`MAX_PAYLOAD_BYTES`) are rejected with `HTTP 413 Payload Too Large`.
+   - **Sliding-Window Rate Limiter**: Limits requests to 60 req/min for general endpoints and 15 req/min for compute-heavy endpoints (Argon2 hashing, RSA key generation, benchmarking).
+4. **Environment Pepper Security**:
+   - `PASSWORD_PEPPER` is sourced via environment variable `os.getenv("PASSWORD_PEPPER", ...)` to demonstrate security key management practices.
+
+---
+
+## 🗄️ Database Architecture & Serverless Persistence
+
+- **Local Development**: Default SQLite database stored at `./cryptolab.db`.
+- **Serverless (Vercel)**: Uses ephemeral `/tmp/cryptolab.db` for serverless environments.
+- **Production Persistence**: For persistent multi-user quiz leaderboards across serverless cold starts, set the `DATABASE_URL` environment variable to a hosted PostgreSQL instance (e.g., [Neon](https://neon.tech/) or [Supabase](https://supabase.com/)).
+
+> **Note on Quiz Leaderboard**: Username-based scoring (`/challenges/submit`) is intentionally unauthenticated to allow instant, friction-free interactive sandbox testing without mandatory user signup.
 
 ---
 

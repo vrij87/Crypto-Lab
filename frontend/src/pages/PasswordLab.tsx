@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Lock, ShieldCheck, ShieldAlert, Check, X, RefreshCw, Eye, EyeOff, Play, ShieldEllipsis 
+  Lock, ShieldCheck, ShieldAlert, Check, X, RefreshCw, Eye, EyeOff, Play, ShieldEllipsis, Info 
 } from 'lucide-react';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
@@ -212,6 +212,15 @@ const PasswordLab: React.FC = () => {
             <div className="glass-panel p-6 space-y-6">
               <h2 className="text-xl font-bold text-white mb-4">Password Strength Analyzer</h2>
               
+              {/* Educational Disclaimer Box */}
+              <div className="p-3.5 bg-purple-950/30 border border-purple-500/30 rounded-xl text-xs text-purple-200 flex items-start space-x-2.5 shadow-sm">
+                <Info className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-bold text-purple-300">Educational Note on Entropy: </span>
+                  This calculator estimates basic mathematical entropy based on character set variance ($L \times \log_2(N)$). Real-world strength meters (like <code>zxcvbn</code>) also analyze dictionary words, common substitutions, and keyboard patterns. Common passwords like <code>P@ssword1!</code> may score high on raw character entropy but remain vulnerable to dictionary attacks!
+                </div>
+              </div>
+
               <div className="space-y-4">
                 <div className="relative">
                   <label className="block text-xs font-mono uppercase text-gray-400 mb-2 flex items-center">

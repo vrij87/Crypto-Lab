@@ -1,5 +1,8 @@
+import time
+from collections import defaultdict
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, SessionLocal
@@ -106,16 +109,67 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Middleware
+# CORS Middleware (Proper origins list with credential support)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Register routers under both /api and root to guarantee matching regardless of serverless path rewriting
+# Sliding Window Rate Limiter & Payload Size Enforcement
+_request_history = defaultdict(list)
+_heavy_endpoints = {
+    "/api/hashing/benchmark",
+    "/api/passwords/hash",
+    "/api/asymmetric/generate-rsa",
+    "/api/asymmetric/generate-ecc",
+    "/api/signatures/sign",
+}
+
+@app.middleware("http")
+async def security_and_rate_limit_middleware(request: Request, call_next):
+    # 1. Payload Size Check
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            length_bytes = int(content_length)
+            if length_bytes > settings.MAX_PAYLOAD_BYTES:
+                return JSONResponse(
+                    status_code=413,
+                    content={"detail": f"Payload too large. Maximum allowed size is {settings.MAX_PAYLOAD_BYTES} bytes."}
+                )
+        except ValueError:
+            pass
+
+    # 2. Rate Limiting Check
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    now = time.time()
+    path = request.url.path
+    
+    # Keep only timestamps within 60 second window
+    _request_history[client_ip] = [t for t in _request_history[client_ip] if now - t < 60.0]
+    
+    limit = (
+        settings.HEAVY_RATE_LIMIT_PER_MINUTE
+        if any(path.startswith(h) for h in _heavy_endpoints)
+        else settings.RATE_LIMIT_PER_MINUTE
+    )
+    
+    if len(_request_history[client_ip]) >= limit:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Rate limit exceeded. Please wait a moment before sending more requests."}
+        )
+        
+    _request_history[client_ip].append(now)
+    
+    response = await call_next(request)
+    return response
+
+# Register routers cleanly under /api prefix
 routers = [
     hashing.router,
     passwords.router,
@@ -129,10 +183,10 @@ routers = [
 
 for r in routers:
     app.include_router(r, prefix=settings.API_V1_STR)
-    app.include_router(r, prefix="")
 
 @app.get("/")
 @app.get("/api")
 @app.get("/api/")
 def read_root():
     return {"message": f"Welcome to the {settings.PROJECT_NAME} v{settings.VERSION}!"}
+
