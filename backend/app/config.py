@@ -1,3 +1,4 @@
+import os
 from pydantic import BaseModel
 
 class Settings(BaseModel):
@@ -11,10 +12,14 @@ class Settings(BaseModel):
         "http://localhost:3000",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
+        "https://*.vercel.app",
     ]
     
-    # SQLite Database
-    DATABASE_URL: str = "sqlite:///./cryptolab.db"
+    # SQLite Database (Use /tmp on Vercel serverless environment)
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        "sqlite:////tmp/cryptolab.db" if os.getenv("VERCEL") else "sqlite:///./cryptolab.db"
+    )
     
     # Pepper for password hashing demo
     PASSWORD_PEPPER: str = "CryptoLabSuperSecurePepper2026!"
