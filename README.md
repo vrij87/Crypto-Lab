@@ -4,7 +4,7 @@
 
 ### *Interactive Cryptography Learning Platform & Cipher Visualizer*
 
-[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Demo-cyan?style=for-the-badge&logo=github)](https://vrij87.github.io/Crypto-Lab/)
+[![Vercel Deployment](https://img.shields.io/badge/Vercel-Live%20Demo-black?style=for-the-badge&logo=vercel)](https://cryptolab-learning.vercel.app/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -13,7 +13,7 @@
 
 ---
 
-**[🌐 View Live Demo](https://vrij87.github.io/Crypto-Lab/)** • **[📖 Explore API Docs](http://127.0.0.1:8000/docs)** • **[🚀 Quick Start](#-getting-started)**
+**[🌐 View Live Demo](https://cryptolab-learning.vercel.app/)** • **[📖 Explore API Docs](https://cryptolab-learning.vercel.app/docs)** • **[🚀 Quick Start](#-getting-started)**
 
 </div>
 
