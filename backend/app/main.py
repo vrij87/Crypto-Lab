@@ -115,16 +115,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register routers
-app.include_router(hashing.router, prefix=settings.API_V1_STR)
-app.include_router(passwords.router, prefix=settings.API_V1_STR)
-app.include_router(symmetric.router, prefix=settings.API_V1_STR)
-app.include_router(asymmetric.router, prefix=settings.API_V1_STR)
-app.include_router(signatures.router, prefix=settings.API_V1_STR)
-app.include_router(explorer.router, prefix=settings.API_V1_STR)
-app.include_router(certificate.router, prefix=settings.API_V1_STR)
-app.include_router(challenges.router, prefix=settings.API_V1_STR)
+# Register routers under both /api and root to guarantee matching regardless of serverless path rewriting
+routers = [
+    hashing.router,
+    passwords.router,
+    symmetric.router,
+    asymmetric.router,
+    signatures.router,
+    explorer.router,
+    certificate.router,
+    challenges.router,
+]
+
+for r in routers:
+    app.include_router(r, prefix=settings.API_V1_STR)
+    app.include_router(r, prefix="")
 
 @app.get("/")
+@app.get("/api")
+@app.get("/api/")
 def read_root():
     return {"message": f"Welcome to the {settings.PROJECT_NAME} v{settings.VERSION}!"}
