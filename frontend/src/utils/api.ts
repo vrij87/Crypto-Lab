@@ -7,6 +7,20 @@ const api = axios.create({
   },
 });
 
+// Automatically inject JWT bearer token into headers if user is logged in
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('supabase_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 export default api;
 
 // API interfaces and functions

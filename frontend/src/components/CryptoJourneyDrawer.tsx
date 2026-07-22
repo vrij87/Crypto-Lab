@@ -19,9 +19,11 @@ import {
   Check,
 } from 'lucide-react';
 import { useProgress, formatRelativeTime } from '../context/ProgressContext';
+import { useAuth } from '../context/AuthContext';
 
 const CryptoJourneyDrawer: React.FC = () => {
   const { isDrawerOpen, closeDrawer, progress, resetProgress } = useProgress();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'all' | 'roadmap' | 'labs' | 'algorithms' | 'skills'>('all');
 
@@ -119,6 +121,29 @@ const CryptoJourneyDrawer: React.FC = () => {
 
           {/* Drawer Body Scroll Container */}
           <div className="flex-grow overflow-y-auto p-5 space-y-6 custom-scrollbar">
+            {/* Supabase Sync Callout for Guest Users */}
+            {!user && (
+              <div className="bg-gradient-to-r from-cyan-950/40 via-purple-950/40 to-blue-950/40 border border-cyan-500/20 rounded-2xl p-4 flex items-start gap-4 shadow-[0_0_20px_rgba(6,182,212,0.08)]">
+                <div className="p-2 bg-cyan-950/60 border border-cyan-500/30 rounded-xl text-cyan-400 mt-1 flex-shrink-0 animate-pulse">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div className="flex-grow space-y-1">
+                  <h4 className="text-sm font-bold text-white">Save your progress?</h4>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    You are currently studying as a guest. Sign in or create a free account to back up your achievements, track roadmap modules, and sync your level!
+                  </p>
+                  <div className="flex items-center gap-3 pt-1.5">
+                    <button
+                      onClick={() => handleNavigate('/auth')}
+                      className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-semibold uppercase tracking-wider transition-all hover:shadow-[0_0_12px_rgba(6,182,212,0.3)] cursor-pointer"
+                    >
+                      Sign In / Sign Up
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 1. Overall Learning Progress & Stats Hero */}
             {(activeTab === 'all' || activeTab === 'roadmap') && (
               <div className="bg-[#111827] border border-gray-800/80 rounded-2xl p-5 relative overflow-hidden shadow-lg">

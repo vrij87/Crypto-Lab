@@ -28,6 +28,9 @@ class Settings(BaseModel):
     # Pepper for password hashing demo (pulled from environment variable with fallback)
     PASSWORD_PEPPER: str = os.getenv("PASSWORD_PEPPER", "CryptoLabSuperSecurePepper2026!")
     
+    # Supabase JWT Secret for auth verification
+    SUPABASE_JWT_SECRET: str = os.getenv("SUPABASE_JWT_SECRET", "")
+    
     # Security & Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
     HEAVY_RATE_LIMIT_PER_MINUTE: int = int(os.getenv("HEAVY_RATE_LIMIT_PER_MINUTE", "15"))

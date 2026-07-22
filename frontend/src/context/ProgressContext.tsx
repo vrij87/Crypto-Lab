@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import api from '../utils/api';
 
 export interface RoadmapModule {
   id: string;
@@ -90,6 +92,95 @@ export const formatRelativeTime = (timestamp: number | string): string => {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
+};
+
+/**
+ * Merges current guest progress context with progress context retrieved from Supabase PostgreSQL.
+ * Retains the maximum level achieved in each lab.
+ */
+const mergeProgressState = (guest: ProgressState, dbData: ProgressState): ProgressState => {
+  const mergedLabProgress = { ...dbData.labProgress };
+  Object.keys(guest.labProgress || {}).forEach((key) => {
+    mergedLabProgress[key] = Math.max(guest.labProgress[key] || 0, dbData.labProgress[key] || 0);
+  });
+
+  const labValues = Object.values(mergedLabProgress);
+  const avg = Math.round(labValues.reduce((a, b) => a + b, 0) / (labValues.length || 1));
+
+  let level = 'Crypto Beginner';
+  if (avg >= 80) level = 'Crypto Master';
+  else if (avg >= 55) level = 'Crypto Explorer';
+  else if (avg >= 30) level = 'Crypto Practitioner';
+
+  const mergedRoadmap = dbData.roadmap.map((dbMod) => {
+    const guestMod = guest.roadmap.find((m) => m.id === dbMod.id);
+    if (!guestMod) return dbMod;
+    
+    let status = dbMod.status;
+    if (guestMod.status === 'completed' || dbMod.status === 'completed') {
+      status = 'completed';
+    } else if (guestMod.status === 'in_progress' || dbMod.status === 'in_progress') {
+      status = 'in_progress';
+    }
+    return { ...dbMod, status };
+  });
+
+  const labsCompleted = mergedRoadmap.filter((m) => m.status === 'completed').length;
+
+  const mergedAlgos = dbData.algorithms.map((dbAlg) => {
+    const guestAlg = guest.algorithms.find((a) => a.name === dbAlg.name);
+    if (!guestAlg) return dbAlg;
+    
+    if (guestAlg.status === 'completed' || dbAlg.status === 'completed') {
+      return { ...dbAlg, status: 'completed' as const, badgeColor: 'emerald' as const };
+    }
+    return dbAlg;
+  });
+
+  const mergedSkills = dbData.skills.map((dbSkill) => {
+    const guestSkill = guest.skills.find((s) => s.name === dbSkill.name);
+    if (!guestSkill) return dbSkill;
+    
+    const newLvl = Math.max(guestSkill.level || 0, dbSkill.level || 0);
+    return {
+      ...dbSkill,
+      level: newLvl,
+      badge: newLvl >= 85 ? 'Master' : newLvl >= 60 ? 'Expert' : newLvl >= 30 ? 'Practitioner' : 'Novice',
+    };
+  });
+
+  const mergedAchievements = dbData.achievements.map((dbAch) => {
+    const guestAch = guest.achievements.find((a) => a.id === dbAch.id);
+    if (!guestAch) return dbAch;
+    
+    if (guestAch.status === 'unlocked' || dbAch.status === 'unlocked') {
+      return {
+        ...dbAch,
+        status: 'unlocked' as const,
+        progressPercent: 100,
+        unlockedDate: dbAch.unlockedDate || guestAch.unlockedDate || new Date().toLocaleDateString(),
+      };
+    }
+    return dbAch;
+  });
+
+  const visitedMap = new Map();
+  dbData.recentVisited.forEach((v) => visitedMap.set(v.id, v));
+  guest.recentVisited.forEach((v) => visitedMap.set(v.id, v));
+  const mergedVisited = Array.from(visitedMap.values()).slice(0, 4);
+
+  return {
+    ...dbData,
+    overallPercentage: avg,
+    level,
+    labsCompletedCount: labsCompleted,
+    labProgress: mergedLabProgress,
+    roadmap: mergedRoadmap,
+    algorithms: mergedAlgos,
+    skills: mergedSkills,
+    achievements: mergedAchievements,
+    recentVisited: mergedVisited,
+  };
 };
 
 const DEFAULT_PROGRESS: ProgressState = {
@@ -324,6 +415,7 @@ const BROADCAST_CHANNEL = 'cryptolab_progress_broadcast';
 const LEVEL_STORAGE_KEY = 'cryptolab_user_level';
 
 export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, token } = useAuth();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [userLevel, setUserLevelState] = useState<'beginner' | 'intermediate' | null>(() => {
     try {
@@ -367,16 +459,81 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [notifications, setNotifications] = useState<ProgressNotification[]>([]);
   const [progress, setProgress] = useState<ProgressState>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return { ...DEFAULT_PROGRESS, ...parsed };
+      // Guest progress should never persist across refreshes (0% default)
+      // Only restore from localStorage cache if an auth session token exists
+      const token = localStorage.getItem('supabase_token');
+      if (token) {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return { ...DEFAULT_PROGRESS, ...parsed };
+        }
       }
-    } catch {
+    } catch (e) {
       // ignore
     }
     return DEFAULT_PROGRESS;
   });
+
+  // Load progress from backend when user logs in and merge guest progress
+  useEffect(() => {
+    const fetchProgress = async () => {
+      if (user && token) {
+        try {
+          const response = await api.get('/progress');
+          const data = response.data;
+          if (data && data.progress_data && Object.keys(data.progress_data).length > 0) {
+            // Save and merge guest progress with existing DB records
+            setProgress((prev) => {
+              const merged = mergeProgressState(prev, data.progress_data);
+              api.post('/progress', merged).catch((err) => console.error("Failed to sync merged progress", err));
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+              return merged;
+            });
+          } else {
+            // First time login for this account: commit current guest progress to database
+            await api.post('/progress', progress);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+          }
+        } catch (err) {
+          console.error("Failed to load progress from backend", err);
+        }
+      }
+    };
+    
+    fetchProgress();
+  }, [user, token]);
+
+  // Clear caches and reset state back to 0% on logout
+  useEffect(() => {
+    if (!user) {
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (e) {
+        // ignore
+      }
+      setProgress(DEFAULT_PROGRESS);
+    }
+  }, [user]);
+
+  // Debounced sync of progress state to backend database
+  useEffect(() => {
+    if (user && token) {
+      const syncProgress = async () => {
+        try {
+          await api.post('/progress', progress);
+        } catch (err) {
+          console.error("Failed to save progress to backend", err);
+        }
+      };
+
+      const delayDebounce = setTimeout(() => {
+        syncProgress();
+      }, 1000); // 1-second debounce
+
+      return () => clearTimeout(delayDebounce);
+    }
+  }, [progress, user, token]);
 
   // Cross-Tab Real-time Broadcast Channel & Storage Sync
   useEffect(() => {
@@ -411,13 +568,18 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Sync state to localStorage & BroadcastChannel
   const notifyStateChange = (newState: ProgressState) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
+      const token = localStorage.getItem('supabase_token');
+      if (token) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
       if ('BroadcastChannel' in window) {
         const bc = new BroadcastChannel(BROADCAST_CHANNEL);
         bc.postMessage({ type: 'SYNC_PROGRESS', payload: newState });
         bc.close();
       }
-    } catch {
+    } catch (e) {
       // ignore
     }
   };
@@ -442,6 +604,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const toggleDrawer = () => setIsDrawerOpen((prev) => !prev);
 
   const markLabVisited = (id: string, name: string, path: string) => {
+    if (!user) return;
     setProgress((prev) => {
       const filtered = prev.recentVisited.filter((v) => v.id !== id);
       const newVisit: RecentVisit = {
@@ -501,6 +664,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const updateLabProgress = (id: string, percent: number) => {
+    if (!user) return;
     setProgress((prev) => {
       const currentPercent = prev.labProgress[id] || 0;
       const newPercent = Math.min(100, Math.max(currentPercent, percent));
@@ -631,6 +795,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const recordAlgorithmLearned = (algoName: string) => {
+    if (!user) return;
     setProgress((prev) => {
       let isNew = false;
       const updatedAlgos = prev.algorithms.map((a) => {

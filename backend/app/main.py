@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, SessionLocal
 from app.models import Base, Challenge
-from app.routers import hashing, passwords, symmetric, asymmetric, signatures, explorer, certificate, challenges
+from app.routers import hashing, passwords, symmetric, asymmetric, signatures, explorer, certificate, challenges, progress
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -179,6 +179,7 @@ routers = [
     explorer.router,
     certificate.router,
     challenges.router,
+    progress.router,
 ]
 
 for r in routers:

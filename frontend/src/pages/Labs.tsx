@@ -5,9 +5,11 @@ import {
   Hash, Lock, Key, Shield, CheckSquare, Globe, BookOpen, Terminal, Compass
 } from 'lucide-react';
 import { useProgress } from '../context/ProgressContext';
+import { useAuth } from '../context/AuthContext';
 
 const Labs: React.FC = () => {
   const { openDrawer, progress } = useProgress();
+  const { user } = useAuth();
 
   const labs = [
     {
@@ -125,6 +127,33 @@ const Labs: React.FC = () => {
           </span>
         </button>
       </div>
+
+      {/* Sync Callout banner for Guest Users */}
+      {!user && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 p-5 rounded-2xl bg-gradient-to-r from-cyan-950/30 via-purple-950/20 to-blue-950/30 border border-cyan-500/20 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_0_25px_rgba(6,182,212,0.06)] animate-fade-in"
+        >
+          <div className="flex items-start gap-3.5">
+            <div className="p-2.5 bg-cyan-950/60 border border-cyan-500/30 rounded-xl text-cyan-400 mt-0.5 flex-shrink-0 animate-pulse">
+              <Compass className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-white">Save your progress?</h4>
+              <p className="text-xs text-gray-400 mt-1 max-w-xl leading-relaxed">
+                You are currently studying as a guest. Sign in or create a free account to back up your lab achievements, roadmap progress, and score metrics to the database.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/auth"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-semibold uppercase tracking-wider text-center transition-all hover:shadow-[0_0_15px_rgba(6,182,212,0.35)] flex-shrink-0 cursor-pointer font-bold"
+          >
+            Sign In / Sign Up
+          </Link>
+        </motion.div>
+      )}
 
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
