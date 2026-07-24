@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Cpu, Lock, Unlock, Copy, Check } from 'lucide-react';
+import { Cpu, Lock, Unlock, Copy, Check, Code, RotateCcw, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
 import { Eli5Tooltip } from '../components/Eli5Tooltip';
@@ -7,6 +7,23 @@ import { RealWorldUsesCard } from '../components/RealWorldUsesCard';
 
 // Available small primes for learning selection
 const SMALL_PRIMES = [3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 71, 73, 79, 83, 89, 97];
+
+// DH Color presets
+const ALICE_COLORS = [
+  { name: 'Royal Blue', hex: '#3b82f6' },
+  { name: 'Forest Green', hex: '#10b981' },
+  { name: 'Neon Purple', hex: '#8b5cf6' },
+  { name: 'Ruby Red', hex: '#ef4444' },
+  { name: 'Electric Cyan', hex: '#06b6d4' }
+];
+
+const BOB_COLORS = [
+  { name: 'Sunset Orange', hex: '#f97316' },
+  { name: 'Hot Pink', hex: '#ec4899' },
+  { name: 'Emerald', hex: '#059669' },
+  { name: 'Amethyst', hex: '#7c3aed' },
+  { name: 'Crimson', hex: '#b91c1c' }
+];
 
 // Greatest Common Divisor helper
 const gcd = (a: number, b: number): number => {
@@ -58,7 +75,7 @@ const powerMod = (base: number, exp: number, mod: number): number => {
 
 const RSASandbox: React.FC = () => {
   const { markLabVisited, updateLabProgress, recordAlgorithmLearned } = useProgress();
-  const [activeTab, setActiveTab] = useState<'keygen' | 'encrypt' | 'decrypt' | 'about'>('keygen');
+  const [activeTab, setActiveTab] = useState<'keygen' | 'encrypt' | 'decrypt' | 'dh' | 'about'>('keygen');
   
   // Selection Primes
   const [p, setP] = useState(11);
@@ -70,14 +87,108 @@ const RSASandbox: React.FC = () => {
   const [plainChar, setPlainChar] = useState('A');
   const [decCipherVal, setDecCipherVal] = useState<number>(104);
 
+  // Code Recipe states
+  const [codeLang, setCodeLang] = useState<'python' | 'node'>('python');
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  // DH Mixer states
+  const [dhStep, setDhStep] = useState<number>(0);
+  const [aliceColor, setAliceColor] = useState<string>('#3b82f6');
+  const [bobColor, setBobColor] = useState<string>('#ef4444');
+  const PUBLIC_BASE_COLOR = '#facc15'; // Yellow
+
+  const mixColors = (c1: string, c2: string) => {
+    const r1 = parseInt(c1.substring(1, 3), 16);
+    const g1 = parseInt(c1.substring(3, 5), 16);
+    const b1 = parseInt(c1.substring(5, 7), 16);
+    const r2 = parseInt(c2.substring(1, 3), 16);
+    const g2 = parseInt(c2.substring(3, 5), 16);
+    const b2 = parseInt(c2.substring(5, 7), 16);
+    const r = Math.round((r1 + r2) / 2).toString(16).padStart(2, '0');
+    const g = Math.round((g1 + g2) / 2).toString(16).padStart(2, '0');
+    const b = Math.round((b1 + b2) / 2).toString(16).padStart(2, '0');
+    return `#${r}${g}${b}`;
+  };
+
+  const mixThreeColors = (c1: string, c2: string, c3: string) => {
+    const r1 = parseInt(c1.substring(1, 3), 16);
+    const g1 = parseInt(c1.substring(3, 5), 16);
+    const b1 = parseInt(c1.substring(5, 7), 16);
+    const r2 = parseInt(c2.substring(1, 3), 16);
+    const g2 = parseInt(c2.substring(3, 5), 16);
+    const b2 = parseInt(c2.substring(5, 7), 16);
+    const r3 = parseInt(c3.substring(1, 3), 16);
+    const g3 = parseInt(c3.substring(3, 5), 16);
+    const b3 = parseInt(c3.substring(5, 7), 16);
+    const r = Math.round((r1 + r2 + r3) / 3).toString(16).padStart(2, '0');
+    const g = Math.round((g1 + g2 + g3) / 3).toString(16).padStart(2, '0');
+    const b = Math.round((b1 + b2 + b3) / 3).toString(16).padStart(2, '0');
+    return `#${r}${g}${b}`;
+  };
+
+  const getRSACodeRecipe = () => {
+    const plaintextEscaped = plainChar.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    if (codeLang === 'python') {
+      return `from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives import hashes
+import base64
+
+# Key Generation
+private_key = rsa.generate_private_key(
+    public_exponent=65537,
+    key_size=2048
+)
+public_key = private_key.public_key()
+
+# Message to encrypt
+message = b"${plaintextEscaped}"
+
+# Encrypt with OAEP padding
+ciphertext = public_key.encrypt(
+    message,
+    padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+        algorithm=hashes.SHA256(),
+        label=None
+    )
+)
+print("Ciphertext (Base64):", base64.b64encode(ciphertext).decode())`;
+    } else {
+      return `const crypto = require('crypto');
+
+// Generate 2048-bit RSA keypair
+const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+  modulusLength: 2048,
+  publicKeyEncoding: { type: 'spki', format: 'pem' },
+  privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
+});
+
+// Message to encrypt
+const message = Buffer.from("${plaintextEscaped}");
+
+// Encrypt with OAEP padding
+const ciphertext = crypto.publicEncrypt(
+  {
+    key: publicKey,
+    padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+    oaepHash: 'sha256'
+  },
+  message
+);
+
+console.log("Ciphertext (Base64):", ciphertext.toString('base64'));`;
+    }
+  };
+
   useEffect(() => {
     markLabVisited('rsa-sandbox', 'RSA Math Sandbox', '/labs/rsa-sandbox');
   }, []);
 
-  const handleTabChange = (tab: 'keygen' | 'encrypt' | 'decrypt' | 'about') => {
+  const handleTabChange = (tab: 'keygen' | 'encrypt' | 'decrypt' | 'dh' | 'about') => {
     setActiveTab(tab);
-    if (tab === 'encrypt') updateLabProgress('rsa-sandbox', 50);
-    if (tab === 'decrypt') updateLabProgress('rsa-sandbox', 80);
+    if (tab === 'encrypt') updateLabProgress('rsa-sandbox', 45);
+    if (tab === 'decrypt') updateLabProgress('rsa-sandbox', 65);
+    if (tab === 'dh') updateLabProgress('rsa-sandbox', 85);
     if (tab === 'about') updateLabProgress('rsa-sandbox', 100);
   };
 
@@ -164,7 +275,7 @@ const RSASandbox: React.FC = () => {
         </div>
         
         <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
-          {(['keygen', 'encrypt', 'decrypt', 'about'] as const).map((tab) => (
+          {(['keygen', 'encrypt', 'decrypt', 'dh', 'about'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => handleTabChange(tab)}
@@ -174,7 +285,7 @@ const RSASandbox: React.FC = () => {
                   : 'text-gray-400 hover:text-white'
               }`}
             >
-              {tab === 'keygen' ? '1. Key Generation' : tab === 'encrypt' ? '2. Encrypt Sandbox' : tab === 'decrypt' ? '3. Decrypt Sandbox' : '4. About'}
+              {tab === 'keygen' ? '1. Keygen' : tab === 'encrypt' ? '2. Encrypt' : tab === 'decrypt' ? '3. Decrypt' : tab === 'dh' ? '4. DH Mixer' : '5. About'}
             </button>
           ))}
         </div>
@@ -483,7 +594,304 @@ const RSASandbox: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 4: ABOUT */}
+          {/* TAB 4: DIFFIE-HELLMAN MIXER */}
+          {activeTab === 'dh' && (
+            <div className="glass-panel p-6 space-y-6">
+              <div className="border-b border-gray-850 pb-4">
+                <span className="text-[10px] font-mono text-purple-400 uppercase tracking-widest text-glow">Interactive Concept Playground</span>
+                <h2 className="text-xl font-bold text-white mt-0.5">Diffie-Hellman Color-Mixing Analogy</h2>
+                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                  Diffie-Hellman Key Exchange allows two parties to establish a shared secret color over an insecure channel without exchanging the secret color directly.
+                </p>
+              </div>
+
+              {/* Mixing timeline flow */}
+              <div className="space-y-6">
+                
+                {/* Step indicators */}
+                <div className="grid grid-cols-4 gap-2 text-center text-[10px] uppercase font-mono font-bold text-gray-500">
+                  <div className={`pb-2 border-b-2 ${dhStep >= 0 ? 'border-purple-500 text-purple-400' : 'border-gray-800'}`}>1. Choose Secrets</div>
+                  <div className={`pb-2 border-b-2 ${dhStep >= 1 ? 'border-purple-500 text-purple-400' : 'border-gray-800'}`}>2. Mix Public</div>
+                  <div className={`pb-2 border-b-2 ${dhStep >= 2 ? 'border-purple-500 text-purple-400' : 'border-gray-800'}`}>3. Swap Mixtures</div>
+                  <div className={`pb-2 border-b-2 ${dhStep >= 3 ? 'border-purple-500 text-purple-400' : 'border-gray-800'}`}>4. Derived Key</div>
+                </div>
+
+                {/* Main Visual mixer stage */}
+                <div className="bg-cyber-darker/60 rounded-xl p-6 border border-gray-800/80 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                  
+                  {/* ALICE SIDE */}
+                  <div className="flex flex-col items-center space-y-3 z-10 w-full md:w-1/3 text-center">
+                    <span className="text-xs font-mono font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Alice</span>
+                    
+                    {/* Alice's Vials */}
+                    <div className="flex gap-4 items-end h-28 justify-center">
+                      {/* Alice Private Vial */}
+                      <div className="flex flex-col items-center">
+                        <div 
+                          className="w-10 h-16 rounded-b-xl border border-gray-700/80 relative flex items-end justify-center shadow-lg transition-all"
+                          style={{ background: 'linear-gradient(to top, rgba(17,24,39,0.9), rgba(31,41,55,0.3))' }}
+                        >
+                          <div 
+                            className="w-8 h-10 rounded-b-lg mb-1 transition-all duration-500 animate-pulse"
+                            style={{ backgroundColor: aliceColor, boxShadow: `0 0 15px ${aliceColor}60` }}
+                          />
+                        </div>
+                        <span className="text-[9px] font-mono text-gray-500 mt-1">Private Key</span>
+                      </div>
+
+                      {/* Alice Mixed Vial (only visible step >= 1) */}
+                      {dhStep >= 1 && (
+                        <div className="flex flex-col items-center transition-all animate-bar-rise">
+                          <div 
+                            className="w-10 h-16 rounded-b-xl border border-gray-700/80 relative flex items-end justify-center shadow-lg"
+                            style={{ background: 'linear-gradient(to top, rgba(17,24,39,0.9), rgba(31,41,55,0.3))' }}
+                          >
+                            <div 
+                              className="w-8 h-10 rounded-b-lg mb-1 transition-all duration-500"
+                              style={{ 
+                                backgroundColor: dhStep >= 2 ? (dhStep === 2 ? bobColor : mixThreeColors(aliceColor, bobColor, PUBLIC_BASE_COLOR)) : mixColors(aliceColor, PUBLIC_BASE_COLOR)
+                              }}
+                            />
+                          </div>
+                          <span className="text-[9px] font-mono text-gray-500 mt-1">
+                            {dhStep === 1 ? 'Public Mix' : dhStep === 2 ? 'Swapped Mix' : 'Shared Secret'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Color picker selector in step 0 */}
+                    {dhStep === 0 && (
+                      <div className="space-y-1.5 text-center">
+                        <label className="text-[9px] font-mono text-gray-400 block uppercase">Pick Secret Color</label>
+                        <div className="flex gap-1.5 justify-center">
+                          {ALICE_COLORS.map(c => (
+                            <button
+                              key={c.hex}
+                              onClick={() => setAliceColor(c.hex)}
+                              className={`w-4 h-4 rounded-full border transition-all cursor-pointer ${aliceColor === c.hex ? 'border-white scale-125 shadow-md' : 'border-transparent hover:scale-110'}`}
+                              style={{ backgroundColor: c.hex }}
+                              title={c.name}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* PUBLIC/SHARED CENTER */}
+                  <div className="flex flex-col items-center space-y-2 w-full md:w-1/4 py-4 md:py-0 relative text-center">
+                    
+                    {dhStep < 2 ? (
+                      <div className="flex flex-col items-center space-y-1 z-10">
+                        <span className="text-[9px] font-mono uppercase text-gray-500">Shared Public Base</span>
+                        <div 
+                          className="w-10 h-16 rounded-b-xl border border-gray-700/80 relative flex items-end justify-center shadow-lg"
+                          style={{ background: 'linear-gradient(to top, rgba(17,24,39,0.9), rgba(31,41,55,0.3))' }}
+                        >
+                          <div 
+                            className="w-8 h-10 rounded-b-lg mb-1 bg-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.4)]"
+                          />
+                        </div>
+                        <span className="text-[9px] font-mono font-bold text-yellow-400">Yellow</span>
+                      </div>
+                    ) : dhStep === 2 ? (
+                      <div className="w-full flex items-center justify-center h-16 text-glow font-bold text-purple-400 animate-pulse text-[10px] font-mono border border-dashed border-purple-500/20 p-2 rounded-lg bg-purple-950/5">
+                        ← SWAPPING MIXTURES OVER PUBLIC NETWORK →
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center space-y-1 text-center bg-emerald-950/15 border border-emerald-900/30 p-2 px-3 rounded-lg z-10">
+                        <span className="text-[9px] font-mono text-emerald-400 font-bold uppercase">Keys Match!</span>
+                        <div 
+                          className="w-6 h-6 rounded-full border border-white/20 animate-pulse mx-auto"
+                          style={{ backgroundColor: mixThreeColors(aliceColor, bobColor, PUBLIC_BASE_COLOR) }}
+                        />
+                        <span className="text-[9px] font-mono text-white font-bold block mt-1">{mixThreeColors(aliceColor, bobColor, PUBLIC_BASE_COLOR)}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* BOB SIDE */}
+                  <div className="flex flex-col items-center space-y-3 z-10 w-full md:w-1/3 text-center">
+                    <span className="text-xs font-mono font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Bob</span>
+                    
+                    {/* Bob's Vials */}
+                    <div className="flex gap-4 items-end h-28 justify-center">
+                      {/* Bob Private Vial */}
+                      <div className="flex flex-col items-center">
+                        <div 
+                          className="w-10 h-16 rounded-b-xl border border-gray-700/80 relative flex items-end justify-center shadow-lg transition-all"
+                          style={{ background: 'linear-gradient(to top, rgba(17,24,39,0.9), rgba(31,41,55,0.3))' }}
+                        >
+                          <div 
+                            className="w-8 h-10 rounded-b-lg mb-1 transition-all duration-500 animate-pulse"
+                            style={{ backgroundColor: bobColor, boxShadow: `0 0 15px ${bobColor}60` }}
+                          />
+                        </div>
+                        <span className="text-[9px] font-mono text-gray-500 mt-1">Private Key</span>
+                      </div>
+
+                      {/* Bob Mixed Vial (only visible step >= 1) */}
+                      {dhStep >= 1 && (
+                        <div className="flex flex-col items-center transition-all animate-bar-rise">
+                          <div 
+                            className="w-10 h-16 rounded-b-xl border border-gray-700/80 relative flex items-end justify-center shadow-lg"
+                            style={{ background: 'linear-gradient(to top, rgba(17,24,39,0.9), rgba(31,41,55,0.3))' }}
+                          >
+                            <div 
+                              className="w-8 h-10 rounded-b-lg mb-1 transition-all duration-500"
+                              style={{ 
+                                backgroundColor: dhStep >= 2 ? (dhStep === 2 ? aliceColor : mixThreeColors(aliceColor, bobColor, PUBLIC_BASE_COLOR)) : mixColors(bobColor, PUBLIC_BASE_COLOR)
+                              }}
+                            />
+                          </div>
+                          <span className="text-[9px] font-mono text-gray-500 mt-1">
+                            {dhStep === 1 ? 'Public Mix' : dhStep === 2 ? 'Swapped Mix' : 'Shared Secret'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Color picker selector in step 0 */}
+                    {dhStep === 0 && (
+                      <div className="space-y-1.5 text-center">
+                        <label className="text-[9px] font-mono text-gray-400 block uppercase">Pick Secret Color</label>
+                        <div className="flex gap-1.5 justify-center">
+                          {BOB_COLORS.map(c => (
+                            <button
+                              key={c.hex}
+                              onClick={() => setBobColor(c.hex)}
+                              className={`w-4 h-4 rounded-full border transition-all cursor-pointer ${bobColor === c.hex ? 'border-white scale-125 shadow-md' : 'border-transparent hover:scale-110'}`}
+                              style={{ backgroundColor: c.hex }}
+                              title={c.name}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Text explanation box based on step */}
+                <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg text-xs leading-relaxed text-gray-400 font-mono space-y-2">
+                  {dhStep === 0 && (
+                    <>
+                      <p className="text-white font-bold uppercase tracking-wider text-[10px] text-purple-400 border-b border-gray-850 pb-1.5">Step 1: Establishing Secrets</p>
+                      <p>Alice and Bob pick private color keys. Alice chose <span className="font-bold text-white">{aliceColor}</span> and Bob chose <span className="font-bold text-white">{bobColor}</span>. They keep these keys strictly private.</p>
+                    </>
+                  )}
+                  {dhStep === 1 && (
+                    <>
+                      <p className="text-white font-bold uppercase tracking-wider text-[10px] text-purple-400 border-b border-gray-850 pb-1.5">Step 2: Mixing with Public Base</p>
+                      <p>Both parties add the shared public Yellow base color (<span className="text-yellow-400 font-bold">#facc15</span>) to their private keys.</p>
+                      <p>Alice's mix: <span className="font-bold text-white">{mixColors(aliceColor, PUBLIC_BASE_COLOR)}</span>. Bob's mix: <span className="font-bold text-white">{mixColors(bobColor, PUBLIC_BASE_COLOR)}</span>.</p>
+                      <p className="text-gray-500 italic text-[10px]">Analogy: Adding Yellow paint creates a public mixture. Just like public key exponentiation, mixing paint is easy, but separating paint back to private colors is mathematically/physically impossible!</p>
+                    </>
+                  )}
+                  {dhStep === 2 && (
+                    <>
+                      <p className="text-white font-bold uppercase tracking-wider text-[10px] text-purple-400 border-b border-gray-850 pb-1.5">Step 3: Exchange Mixtures Publicly</p>
+                      <p>Alice sends her green mixture to Bob, and Bob sends his orange mixture to Alice over the insecure web connection.</p>
+                      <p>Even if an eavesdropper intercepts the mixtures, they cannot isolate Alice or Bob's private colors due to the one-way nature of the blend.</p>
+                    </>
+                  )}
+                  {dhStep === 3 && (
+                    <>
+                      <p className="text-white font-bold uppercase tracking-wider text-[10px] text-purple-400 border-b border-gray-850 pb-1.5">Step 4: Combine to derive Session Key</p>
+                      <p>Alice takes Bob's public mixture (<span className="text-white font-bold">{mixColors(bobColor, PUBLIC_BASE_COLOR)}</span>) and adds her private key (<span className="text-white font-bold">{aliceColor}</span>).</p>
+                      <p>Bob takes Alice's public mixture (<span className="text-white font-bold">{mixColors(aliceColor, PUBLIC_BASE_COLOR)}</span>) and adds his private key (<span className="text-white font-bold">{bobColor}</span>).</p>
+                      <p>Both calculate the exact same final shared secret color: <span className="text-emerald-400 font-bold font-mono">{mixThreeColors(aliceColor, bobColor, PUBLIC_BASE_COLOR)}</span>!</p>
+                    </>
+                  )}
+                </div>
+
+                {/* Timeline controls */}
+                <div className="flex justify-between items-center pt-2">
+                  <button
+                    disabled={dhStep === 0}
+                    onClick={() => setDhStep(prev => prev - 1)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-white rounded text-xs font-bold font-mono uppercase cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    Back
+                  </button>
+                  
+                  {dhStep < 3 ? (
+                    <button
+                      onClick={() => setDhStep(prev => prev + 1)}
+                      className="flex items-center gap-1.5 px-4 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded text-xs font-bold font-mono uppercase cursor-pointer"
+                    >
+                      Next Step
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setDhStep(0)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-950/40 text-purple-300 border border-purple-900/40 hover:bg-purple-900/20 rounded text-xs font-bold font-mono uppercase cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Reset Mixer
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* View Code Recipes Panel for RSA (visible on keygen, encrypt, decrypt) */}
+          {(activeTab === 'keygen' || activeTab === 'encrypt' || activeTab === 'decrypt') && (
+            <div className="bg-purple-950/5 border border-purple-500/10 rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono uppercase text-purple-400 flex items-center gap-1.5 font-bold">
+                  <Code className="w-3.5 h-3.5" />
+                  View RSA Code Recipe
+                </span>
+                
+                <div className="flex gap-2">
+                  <div className="flex bg-cyber-darker rounded p-0.5 border border-gray-850 text-[10px]">
+                    <button
+                      onClick={() => setCodeLang('python')}
+                      className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                        codeLang === 'python'
+                          ? 'bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30'
+                          : 'text-gray-500 hover:text-gray-300'
+                      }`}
+                    >
+                      Python
+                    </button>
+                    <button
+                      onClick={() => setCodeLang('node')}
+                      className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                        codeLang === 'node'
+                          ? 'bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30'
+                          : 'text-gray-500 hover:text-gray-300'
+                      }`}
+                    >
+                      Node.js
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(getRSACodeRecipe());
+                      setCopiedCode(true);
+                      setTimeout(() => setCopiedCode(false), 2000);
+                    }}
+                    className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                    title="Copy Code Recipe"
+                  >
+                    {copiedCode ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <pre className="bg-black/45 text-gray-300 font-mono text-[10px] p-3 rounded-lg overflow-x-auto leading-relaxed border border-gray-900 select-all">
+                {getRSACodeRecipe()}
+              </pre>
+            </div>
+          )}
+
+          {/* TAB 5: ABOUT */}
           {activeTab === 'about' && (
             <div className="glass-panel p-6 space-y-6">
               <h2 className="text-xl font-bold text-white mb-2">RSA Asymmetric Cryptography Math</h2>

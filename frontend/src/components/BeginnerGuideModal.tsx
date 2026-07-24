@@ -166,6 +166,41 @@ const GUIDE_STEPS: GuideStep[] = [
     labPath: '/labs/certificates',
     labName: 'Open SSL Certificate Lab',
   },
+  {
+    id: 'rsa-sandbox',
+    title: '🧮 6. RSA Mathematical Sandbox',
+    badge: 'Modular Math Primes',
+    icon: Cpu,
+    color: 'text-purple-400',
+    bgColor: 'bg-purple-500/10',
+    borderColor: 'border-purple-500/30',
+    analogy: '🧩 Clock Arithmetic Analogy',
+    explanation:
+      '📚 RSA ALGORITHM GUIDE (How Math is Done):\n\n' +
+      '1. Secret Primes (p, q): Select two prime numbers (e.g. p=3, q=11).\n' +
+      '2. Modulus N (p * q): Modulus N serves as the base. Numbers wrap at N, like hours on a clock wrapping at 12. Example: N = 3 * 11 = 33.\n' +
+      '3. Euler Totient φ (p-1)*(q-1): Calculates numbers coprime to N. Crucial for matching key exponents. Example: φ = 2 * 10 = 20.\n' +
+      '4. Public Exponent e: A prime coprime to φ. Used publicly to encrypt message codes (c = m^e % N). Example: e=3.\n' +
+      '5. Private Inverse d: The secret exponent satisfying (d * e) % φ = 1. Used to decrypt cipher codes (m = c^d % N). Example: d=7 (since 7 * 3 = 21, and 21 % 20 = 1).\n\n' +
+      '🛡️ SECURITY OF RSA SANDBOX:\n' +
+      '• Sandbox Math (Broken): Selecting tiny primes (e.g. p, q < 100) generates small moduli (like N=33 or N=143). An attacker can factor N back to p and q in microseconds using simple trial division, instantly breaking the private key.\n' +
+      '• Production RSA (Secure): Real-world systems select massive 2048-bit or 4096-bit primes (numbers with hundreds of digits). Modulus N is so massive that factoring it back to p and q is computationally impossible, taking supercomputers billions of years.\n\n' +
+      '🎮 EXAMPLES TO TRY BELOW:\n' +
+      '• Example 1: Set p = 3, q = 11. Modulus N is 33, φ is 20. Public exponent e is 3, Private exponent d is 7. Try encrypting code 5: 5³ % 33 = 26. Try decrypting 26: 26⁷ % 33 = 5!\n' +
+      '• Example 2: Set p = 5, q = 11. Modulus N is 55, φ is 40. Public exponent e is 7, Private exponent d is 23. Try encrypting code 2: 2⁷ % 55 = 18. Try decrypting 18: 18²³ % 55 = 2!',
+    realWorldUses: [
+      {
+        title: '🔑 Factorization Hardness',
+        desc: 'Security depends on the inability to factor N back into p and q. For small sandbox values this is easy, but for 2048-bit numbers it is impossible.',
+      },
+      {
+        title: '📐 Modular Arithmetic Wrapping',
+        desc: 'Teaches modular wrapping. If a message character code is larger than modulus N, wrapping collides (causing decryption to fail).',
+      },
+    ],
+    labPath: '/labs/rsa-sandbox',
+    labName: 'Open RSA Math Sandbox',
+  },
 ];
 
 const ALGORITHMS_DATABASE: AlgorithmInfo[] = [
@@ -363,6 +398,17 @@ const ALGORITHMS_DATABASE: AlgorithmInfo[] = [
     whereUsed: 'macOS & Windows app update verification, DocuSign PDFs, Git signed commits.',
     labPath: '/labs/signatures',
   },
+  {
+    id: 'rsa-sandbox-algo',
+    name: 'RSA Sandbox Math (Small Primes)',
+    category: 'Asymmetric',
+    securityLevel: 'broken',
+    securityBadge: '🔴 Cryptographically Broken',
+    securityDesc: 'Using small prime factors (p, q < 100) makes the modulus N easily factorable in microseconds by simple trial division or Fermat factorization.',
+    recommendedUse: 'ONLY for educational sandboxing, visual key generation step walkthroughs, and learning arithmetic wrapping. Never use small prime sizes in production keys.',
+    whereUsed: 'CryptoLab RSA Math Sandbox, academic cryptographic modular arithmetic demonstrations.',
+    labPath: '/labs/rsa-sandbox',
+  },
 ];
 
 export const BeginnerGuideModal: React.FC = () => {
@@ -370,6 +416,131 @@ export const BeginnerGuideModal: React.FC = () => {
   const [viewMode, setViewMode] = useState<'crash_course' | 'algorithms_matrix'>('crash_course');
   const [currentIdx, setCurrentIdx] = useState(0);
   const [algCategory, setAlgCategory] = useState<string>('All');
+
+  // Mini Interactive Widgets States
+  const [miniHashInput, setMiniHashInput] = useState('Hello, CryptoLab!');
+  const [miniSymPlain, setMiniSymPlain] = useState('My secret message');
+  const [miniSymKey, setMiniSymKey] = useState('SHARED_KEY');
+  const [miniSymCipher, setMiniSymCipher] = useState('');
+  const [miniSymDec, setMiniSymDec] = useState('');
+
+  const [miniAsymPlain, setMiniAsymPlain] = useState('RSA is fun');
+  const [miniAsymCipher, setMiniAsymCipher] = useState('');
+  const [miniAsymDec, setMiniAsymDec] = useState('');
+
+  const [miniSigMessage, setMiniSigMessage] = useState('Approve transaction of $100');
+  const [miniSignature, setMiniSignature] = useState('');
+  const [miniSigVerified, setMiniSigVerified] = useState<boolean | null>(null);
+
+  const [showSSLDetails, setShowSSLDetails] = useState(false);
+
+  // Mini RSA Sandbox States
+  const [miniRSAp, setMiniRSAp] = useState(11);
+  const [miniRSAq, setMiniRSAq] = useState(13);
+
+  // 1. Simple Hash (DJB2 variation)
+  const simpleHash = (str: string) => {
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash * 33) ^ str.charCodeAt(i);
+    }
+    return (hash >>> 0).toString(16).toUpperCase().padStart(8, '0');
+  };
+
+  // 2. Simple Symmetric XOR
+  const simpleXOR = (text: string, key: string) => {
+    if (!key) return '';
+    return text.split('').map((c, i) => {
+      const k = key.charCodeAt(i % key.length);
+      return String.fromCharCode(c.charCodeAt(0) ^ k);
+    }).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+  };
+
+  const simpleXORDecrypt = (hex: string, key: string) => {
+    if (!key || !hex) return '';
+    try {
+      const chars: string[] = [];
+      for (let i = 0; i < hex.length; i += 2) {
+        chars.push(String.fromCharCode(parseInt(hex.substr(i, 2), 16)));
+      }
+      return chars.map((c, i) => {
+        const k = key.charCodeAt(i % key.length);
+        return String.fromCharCode(c.charCodeAt(0) ^ k);
+      }).join('');
+    } catch (e) {
+      return 'Decryption Error';
+    }
+  };
+
+  // 3. Mini RSA Asymmetric Math (e=7, d=103, N=143)
+  const rsaEncryptString = (text: string) => {
+    const eVal = 7;
+    const nVal = 143;
+    return text.split('').map(char => {
+      const m = char.charCodeAt(0);
+      let result = 1;
+      let base = m % nVal;
+      let exp = eVal;
+      while (exp > 0) {
+        if (exp % 2 === 1) result = (result * base) % nVal;
+        base = (base * base) % nVal;
+        exp = Math.floor(exp / 2);
+      }
+      return result.toString(16).padStart(2, '0');
+    }).join(' ');
+  };
+
+  const rsaDecryptString = (hexString: string) => {
+    const dVal = 103;
+    const nVal = 143;
+    if (!hexString) return '';
+    try {
+      return hexString.split(' ').map(hex => {
+        const c = parseInt(hex, 16);
+        if (isNaN(c)) return '';
+        let result = 1;
+        let base = c % nVal;
+        let exp = dVal;
+        while (exp > 0) {
+          if (exp % 2 === 1) result = (result * base) % nVal;
+          base = (base * base) % nVal;
+          exp = Math.floor(exp / 2);
+        }
+        return String.fromCharCode(result);
+      }).join('');
+    } catch (e) {
+      return 'Decryption Error';
+    }
+  };
+
+  // 4. Mini RSA Signatures (Alice Private key d=103, Bob Public key e=7, N=143)
+  const getSignature = (text: string) => {
+    const h = text.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 143;
+    let s = 1;
+    let base = h % 143;
+    let exp = 103;
+    while (exp > 0) {
+      if (exp % 2 === 1) s = (s * base) % 143;
+      base = (base * base) % 143;
+      exp = Math.floor(exp / 2);
+    }
+    return s.toString(16).toUpperCase();
+  };
+
+  const verifySignature = (text: string, sigHex: string) => {
+    const hActual = text.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 143;
+    const s = parseInt(sigHex, 16);
+    if (isNaN(s)) return false;
+    let hExpected = 1;
+    let base = s % 143;
+    let exp = 7;
+    while (exp > 0) {
+      if (exp % 2 === 1) hExpected = (hExpected * base) % 143;
+      base = (base * base) % 143;
+      exp = Math.floor(exp / 2);
+    }
+    return hActual === hExpected;
+  };
 
   if (!showBeginnerGuide) return null;
 
@@ -508,6 +679,359 @@ export const BeginnerGuideModal: React.FC = () => {
                 </p>
               </div>
 
+              {/* 1. Cryptographic Hashing Widget */}
+              {activeStep.id === 'hash' && (
+                <div className="bg-slate-950/50 border border-emerald-500/10 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                      <Cpu className="w-3.5 h-3.5" />
+                      🔬 Interactive Hashing Sandbox
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono">One-Way Fingerprint</span>
+                  </div>
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={miniHashInput}
+                      onChange={(e) => setMiniHashInput(e.target.value)}
+                      placeholder="Type message here..."
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-white font-mono"
+                    />
+                    <div className="flex flex-col sm:flex-row gap-2 items-center justify-between bg-slate-900 p-2.5 rounded border border-slate-800 font-mono text-xs">
+                      <span className="text-slate-400">Simple Fletcher-32 Digest (Hex):</span>
+                      <span className="text-emerald-400 font-bold text-sm bg-emerald-500/10 px-2 py-0.5 rounded tracking-widest">
+                        {simpleHash(miniHashInput)}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 italic">
+                      Try changing just one character (e.g. capitalize a letter). Notice how the entire 8-character fingerprint changes completely (Avalanche Effect)!
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Symmetric Encryption Widget */}
+              {activeStep.id === 'symmetric' && (
+                <div className="bg-slate-950/50 border border-cyan-500/10 rounded-xl p-4 space-y-3">
+                  <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider block">🔒 Interactive Symmetric XOR Sandbox</span>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono text-slate-500 block">Plaintext Message</label>
+                      <input
+                        type="text"
+                        value={miniSymPlain}
+                        onChange={(e) => {
+                          setMiniSymPlain(e.target.value);
+                          const cipher = simpleXOR(e.target.value, miniSymKey);
+                          setMiniSymCipher(cipher);
+                          setMiniSymDec(simpleXORDecrypt(cipher, miniSymKey));
+                        }}
+                        placeholder="Type message..."
+                        className="w-full bg-slate-900 border border-slate-850 rounded-lg p-2 text-white font-mono text-xs focus:border-cyan-500 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono text-slate-500 block">Shared Secret Key</label>
+                      <input
+                        type="text"
+                        value={miniSymKey}
+                        onChange={(e) => {
+                          setMiniSymKey(e.target.value);
+                          const cipher = simpleXOR(miniSymPlain, e.target.value);
+                          setMiniSymCipher(cipher);
+                          setMiniSymDec(simpleXORDecrypt(cipher, e.target.value));
+                        }}
+                        placeholder="Key..."
+                        className="w-full bg-slate-900 border border-slate-850 rounded-lg p-2 text-white font-mono text-xs focus:border-cyan-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t border-slate-850 font-mono text-xs">
+                    <div className="flex justify-between items-center p-2 bg-slate-900 rounded border border-slate-850">
+                      <span className="text-slate-400">Ciphertext (Hex):</span>
+                      <span className="text-cyan-400 font-bold break-all bg-cyan-500/10 px-2 py-0.5 rounded">
+                        {miniSymCipher || simpleXOR(miniSymPlain, miniSymKey)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-slate-900 rounded border border-slate-850">
+                      <span className="text-slate-400">Decrypted Payload:</span>
+                      <span className="text-emerald-400 font-bold">
+                        {miniSymDec || simpleXORDecrypt(miniSymCipher || simpleXOR(miniSymPlain, miniSymKey), miniSymKey)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Asymmetric Encryption Widget */}
+              {activeStep.id === 'asymmetric' && (
+                <div className="bg-slate-950/50 border border-purple-500/10 rounded-xl p-4 space-y-3">
+                  <span className="text-xs font-mono font-bold text-purple-400 uppercase tracking-wider block">🔑 Interactive Asymmetric RSA Sandbox</span>
+                  <p className="text-[10px] text-slate-500 leading-normal">
+                    Bob publishes his Public Key pair <span className="text-purple-400 font-bold">(e=7, N=143)</span>. Anyone can encrypt messages using it, but only Bob's Private Key <span className="text-purple-400 font-bold">(d=103)</span> can decrypt.
+                  </p>
+
+                  <div className="space-y-2 text-xs">
+                    <input
+                      type="text"
+                      value={miniAsymPlain}
+                      onChange={(e) => setMiniAsymPlain(e.target.value)}
+                      placeholder="Message to Bob..."
+                      className="w-full bg-slate-900 border border-slate-850 rounded-lg p-2 text-white font-mono text-xs focus:border-purple-500 focus:outline-none"
+                    />
+
+                    <div className="flex flex-col sm:flex-row gap-2 pt-1.5">
+                      <button
+                        onClick={() => {
+                          const cipher = rsaEncryptString(miniAsymPlain);
+                          setMiniAsymCipher(cipher);
+                          setMiniAsymDec('');
+                        }}
+                        className="px-3 py-1.5 bg-purple-650 hover:bg-purple-600 text-white rounded text-xs font-bold font-mono uppercase cursor-pointer"
+                      >
+                        Lock with Public Key (e=7, N=143)
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          const dec = rsaDecryptString(miniAsymCipher);
+                          setMiniAsymDec(dec);
+                        }}
+                        disabled={!miniAsymCipher}
+                        className="px-3 py-1.5 bg-indigo-955 text-indigo-300 border border-indigo-900/40 hover:bg-indigo-900/20 disabled:opacity-40 rounded text-xs font-bold font-mono uppercase cursor-pointer"
+                      >
+                        Unlock with Private Key (d=103)
+                      </button>
+                    </div>
+
+                    {miniAsymCipher && (
+                      <div className="space-y-2 pt-2 border-t border-slate-850 font-mono">
+                        <div className="flex justify-between items-center p-2 bg-slate-900 rounded border border-slate-850">
+                          <span className="text-slate-400">Ciphertext (RSA Exponents):</span>
+                          <span className="text-purple-400 font-bold break-all bg-purple-500/10 px-2 py-0.5 rounded">{miniAsymCipher}</span>
+                        </div>
+                        {miniAsymDec && (
+                          <div className="flex justify-between items-center p-2 bg-slate-900 rounded border border-slate-850">
+                            <span className="text-slate-400">Decrypted Message:</span>
+                            <span className="text-emerald-400 font-bold">{miniAsymDec}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 4. Digital Signatures Widget */}
+              {activeStep.id === 'signatures' && (
+                <div className="bg-slate-950/50 border border-pink-500/10 rounded-xl p-4 space-y-3">
+                  <span className="text-xs font-mono font-bold text-pink-400 uppercase tracking-wider block">✍️ Interactive Digital Signatures Sandbox</span>
+                  
+                  <div className="space-y-2 text-xs">
+                    <label className="text-[10px] font-mono text-slate-500 block">Alice's Contract Text</label>
+                    <input
+                      type="text"
+                      value={miniSigMessage}
+                      onChange={(e) => {
+                        setMiniSigMessage(e.target.value);
+                        setMiniSigVerified(null);
+                      }}
+                      placeholder="Message to sign..."
+                      className="w-full bg-slate-900 border border-slate-850 rounded-lg p-2 text-white font-mono text-xs focus:border-pink-500 focus:outline-none"
+                    />
+
+                    <div className="flex flex-col sm:flex-row gap-2 pt-1.5">
+                      <button
+                        onClick={() => {
+                          const sig = getSignature(miniSigMessage);
+                          setMiniSignature(sig);
+                          setMiniSigVerified(null);
+                        }}
+                        className="px-3 py-1.5 bg-pink-650 hover:bg-pink-600 text-white rounded text-xs font-bold font-mono uppercase cursor-pointer"
+                      >
+                        Sign with Alice's Private Key
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          const matches = verifySignature(miniSigMessage, miniSignature);
+                          setMiniSigVerified(matches);
+                        }}
+                        disabled={!miniSignature}
+                        className="px-3 py-1.5 bg-slate-800 border border-slate-700 hover:bg-slate-750 disabled:opacity-40 text-white rounded text-xs font-bold font-mono uppercase cursor-pointer"
+                      >
+                        Verify Signature with Alice's Public Key
+                      </button>
+                    </div>
+
+                    {miniSignature && (
+                      <div className="space-y-2 pt-2 border-t border-slate-850 font-mono">
+                        <div className="flex justify-between items-center p-2 bg-slate-900 rounded border border-slate-850">
+                          <span className="text-slate-400">Cryptographic Seal / Signature:</span>
+                          <span className="text-pink-400 font-bold bg-pink-500/10 px-2 py-0.5 rounded">{miniSignature}</span>
+                        </div>
+                        
+                        {miniSigVerified !== null && (
+                          <div className={`p-2.5 rounded-lg border text-center ${
+                            miniSigVerified
+                              ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-400'
+                              : 'bg-rose-950/20 border-rose-900/30 text-rose-450 font-bold'
+                          }`}>
+                            {miniSigVerified ? (
+                              <span>✔ Signature Valid! Bob verifies Alice wrote this exact message.</span>
+                            ) : (
+                              <span>❌ Warning: Signature Invalid! The message has been altered or tampered with!</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 5. SSL/TLS Certificates Widget */}
+              {activeStep.id === 'certificates' && (
+                <div className="bg-slate-950/50 border border-amber-500/10 rounded-xl p-4 space-y-3">
+                  <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider block">🪪 Browser TLS Certificate Verification</span>
+                  
+                  {/* Simulated Address Bar */}
+                  <div className="bg-slate-900 rounded-lg p-2 border border-slate-850 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 flex-grow">
+                      <button
+                        onClick={() => setShowSSLDetails(prev => !prev)}
+                        className="p-1 px-1.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20 flex items-center gap-1 cursor-pointer font-bold"
+                      >
+                        <Lock className="w-3.5 h-3.5 fill-amber-400" />
+                        <span>HTTPS</span>
+                      </button>
+                      <span className="text-slate-300 font-mono select-none">https://cryptolab-bank.com</span>
+                    </div>
+                    <span className="text-[10px] text-emerald-400 font-bold font-mono uppercase bg-emerald-500/10 px-2 py-0.5 rounded">
+                      Secure
+                    </span>
+                  </div>
+
+                  {/* SSL Details Box */}
+                  {showSSLDetails && (
+                    <div className="p-3 bg-slate-950 border border-slate-850 rounded-lg space-y-2 font-mono text-[10px] leading-relaxed animate-bar-rise">
+                      <div className="border-b border-slate-850 pb-1 text-slate-400 font-bold uppercase tracking-wider">X.509 Certificate details:</div>
+                      <p><span className="text-slate-500">Issued To:</span> cryptolab-bank.com</p>
+                      <p><span className="text-slate-500">Issued By:</span> Let's Encrypt Authority X3</p>
+                      <p><span className="text-slate-500">Serial Number:</span> 04:A3:F9:5D:EE:12:8B</p>
+                      <p><span className="text-slate-500">Signature Alg:</span> sha256WithRSAEncryption</p>
+                      <p><span className="text-slate-500">Validity:</span> Trusted & Active</p>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-slate-500">
+                    Click the lock icon next to the address to view the certificate details pop-up, proving identity!
+                  </p>
+                </div>
+              )}
+
+              {/* 6. RSA Math Sandbox Widget */}
+              {activeStep.id === 'rsa-sandbox' && (
+                <div className="bg-slate-950/50 border border-purple-500/10 rounded-xl p-4 space-y-3">
+                  <span className="text-xs font-mono font-bold text-purple-400 uppercase tracking-wider block">📐 Interactive Miniature RSA Calculator</span>
+                  
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono text-slate-500 block">Prime Number p</label>
+                      <select
+                        value={miniRSAp}
+                        onChange={(e) => setMiniRSAp(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-850 rounded-lg p-2 text-white font-mono text-xs focus:border-purple-500 focus:outline-none"
+                      >
+                        {[3, 5, 7, 11, 13, 17, 19].map(prime => (
+                          <option key={prime} value={prime}>{prime}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono text-slate-500 block">Prime Number q</label>
+                      <select
+                        value={miniRSAq}
+                        onChange={(e) => setMiniRSAq(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-850 rounded-lg p-2 text-white font-mono text-xs focus:border-purple-500 focus:outline-none"
+                      >
+                        {[3, 5, 7, 11, 13, 17, 19].filter(prime => prime !== miniRSAp).map(prime => (
+                          <option key={prime} value={prime}>{prime}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Calculations breakdown */}
+                  {(() => {
+                    const N_calc = miniRSAp * miniRSAq;
+                    const phi_calc = (miniRSAp - 1) * (miniRSAq - 1);
+                    
+                    // Smallest e coprime to phi
+                    let e_calc = 3;
+                    const gcd_fn = (a: number, b: number): number => {
+                      while (b !== 0) {
+                        const temp = b;
+                        b = a % b;
+                        a = temp;
+                      }
+                      return a;
+                    };
+                    while (e_calc < phi_calc) {
+                      if (gcd_fn(e_calc, phi_calc) === 1) break;
+                      e_calc += 2;
+                    }
+
+                    // Modular inverse d
+                    let d_calc = 1;
+                    for (let x = 1; x < phi_calc; x++) {
+                      if (((e_calc % phi_calc) * (x % phi_calc)) % phi_calc === 1) {
+                        d_calc = x;
+                        break;
+                      }
+                    }
+
+                    return (
+                      <div className="space-y-2 pt-2 border-t border-slate-850 font-mono text-xs">
+                        <div className="grid grid-cols-2 gap-2 text-[10px]">
+                          <div className="p-2 bg-slate-900 rounded border border-slate-850">
+                            <span className="text-slate-500">Modulus N (p * q):</span>
+                            <span className="text-white font-bold block text-xs mt-0.5">{N_calc}</span>
+                          </div>
+                          <div className="p-2 bg-slate-900 rounded border border-slate-850">
+                            <span className="text-slate-500">Euler Totient φ (p-1)*(q-1):</span>
+                            <span className="text-white font-bold block text-xs mt-0.5">{phi_calc}</span>
+                          </div>
+                          <div className="p-2 bg-slate-900 rounded border border-slate-850">
+                            <span className="text-purple-400">Public Key Exponent e:</span>
+                            <span className="text-purple-300 font-bold block text-xs mt-0.5">{e_calc}</span>
+                          </div>
+                          <div className="p-2 bg-slate-900 rounded border border-slate-850">
+                            <span className="text-emerald-400">Private Key Exponent d:</span>
+                            <span className="text-emerald-300 font-bold block text-xs mt-0.5">{d_calc}</span>
+                          </div>
+                        </div>
+
+                        {/* Interactive Encrypt/Decrypt Simulation */}
+                        <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-850 space-y-2 text-[10px]">
+                          <div className="flex justify-between items-center text-slate-400">
+                            <span>Key Pairs Generated:</span>
+                            <span className="text-white font-bold bg-slate-800 p-0.5 px-2 rounded">
+                              Public: ({e_calc}, {N_calc}) | Private: ({d_calc}, {N_calc})
+                            </span>
+                          </div>
+                          <p className="text-slate-500 leading-normal leading-relaxed">
+                            Changing the prime options recalculates the public modulus $N$, Euler totient $\phi$, public key exponent $e$, and private key inverse $d$. Try larger primes in the full lab to expand keyspace!
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
               <div className="space-y-2">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                   <Globe className="w-3.5 h-3.5 text-emerald-400" /> Where is it used in real life?
@@ -631,6 +1155,14 @@ export const BeginnerGuideModal: React.FC = () => {
                       <p className="text-[11px] text-slate-400 mt-2">
                         <strong className="text-slate-300">Real-World Examples:</strong> {alg.whereUsed}
                       </p>
+
+                      {alg.id === 'rsa-sandbox-algo' && (
+                        <div className="mt-3 p-3 bg-red-950/30 border border-red-500/25 rounded-xl text-[11px] leading-relaxed text-red-350">
+                          <strong className="text-red-400 block mb-1">⚠️ CRITICAL STUDENT WARNING:</strong>
+                          This sandbox uses tiny prime numbers (under 100) solely so the arithmetic is readable and easy to follow. 
+                          <span className="font-bold text-red-250"> NEVER use small prime sizes in real-world keys.</span> A basic computer can factor small moduli in microseconds to steal your private keys. Real-world RSA requires massive primes (2048+ bits) to guarantee mathematical security.
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-2 border-t border-slate-800/60 flex justify-end">

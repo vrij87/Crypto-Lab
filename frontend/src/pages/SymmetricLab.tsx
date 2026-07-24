@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Key, Lock, Unlock, RefreshCw, Copy, Check, Info, ArrowRight } from 'lucide-react';
+import { Key, Lock, Unlock, RefreshCw, Copy, Check, Info, ArrowRight, Code, ShieldAlert, RotateCcw } from 'lucide-react';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
@@ -30,6 +30,122 @@ const SymmetricLab: React.FC = () => {
   const [encResult, setEncResult] = useState<any>(null);
   const [encLoading, setEncLoading] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const [codeLang, setCodeLang] = useState<'python' | 'node'>('python');
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  // Bit-flipping sandbox states
+  const [tamperMap, setTamperMap] = useState<Record<number, string>>({});
+  const [tamperDecResult, setTamperDecResult] = useState<string | null>(null);
+  const [tamperDecError, setTamperDecError] = useState<string | null>(null);
+  const [tamperLoading, setTamperLoading] = useState(false);
+
+  // Reset bit-flipping when encryption results change
+  useEffect(() => {
+    setTamperMap({});
+    setTamperDecResult(null);
+    setTamperDecError(null);
+  }, [encResult]);
+
+  const getSymmetricCodeRecipe = () => {
+    const keyHex = encKey || "00".repeat(encKeySize / 8);
+    const ivHex = encResult?.iv || "00".repeat(encAlg === 'AES' ? (encMode === 'GCM' ? 12 : 16) : 16);
+    const plaintextEscaped = encPlaintext.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+
+    if (codeLang === 'python') {
+      let pythonCode = `from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding
+import os
+
+# Inputs
+plaintext = b"${plaintextEscaped}"
+key = bytes.fromhex("${keyHex}")
+iv = bytes.fromhex("${ivHex}")
+`;
+
+      if (encAlg === 'AES') {
+        if (encMode === 'GCM') {
+          pythonCode += `
+# AES-GCM Setup
+cipher = Cipher(algorithms.AES(key), modes.GCM(iv))
+encryptor = cipher.encryptor()
+
+# Encrypt
+ciphertext = encryptor.update(plaintext) + encryptor.finalize()
+tag = encryptor.tag
+
+print(f"Ciphertext (hex): {ciphertext.hex()}")
+print(f"Auth Tag (hex): {tag.hex()}")`;
+        } else {
+          pythonCode += `
+# AES-CBC Setup (requires padding to 16-byte block size)
+cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
+encryptor = cipher.encryptor()
+
+# PKCS7 Padder
+padder = padding.PKCS7(128).padder()
+padded_data = padder.update(plaintext) + padder.finalize()
+
+# Encrypt
+ciphertext = encryptor.update(padded_data) + encryptor.finalize()
+print(f"Ciphertext (hex): {ciphertext.hex()}")`;
+        }
+      } else {
+        // ChaCha20
+        pythonCode += `
+# ChaCha20 Setup (stream cipher, no padding required)
+cipher = Cipher(algorithms.ChaCha20(key, iv), mode=None)
+encryptor = cipher.encryptor()
+
+# Encrypt
+ciphertext = encryptor.update(plaintext) + encryptor.finalize()
+print(f"Ciphertext (hex): {ciphertext.hex()}")`;
+      }
+      return pythonCode;
+    } else {
+      // Node.js
+      let nodeCode = `const crypto = require('crypto');
+
+// Inputs
+const plaintext = "${plaintextEscaped}";
+const key = Buffer.from("${keyHex}", "hex");
+const iv = Buffer.from("${ivHex}", "hex");
+`;
+
+      if (encAlg === 'AES') {
+        const method = `aes-${encKeySize}-${encMode.toLowerCase()}`;
+        if (encMode === 'GCM') {
+          nodeCode += `
+// AES-GCM Encryption
+const cipher = crypto.createCipheriv('${method}', key, iv);
+let ciphertext = cipher.update(plaintext, 'utf8', 'hex');
+ciphertext += cipher.final('hex');
+const tag = cipher.getAuthTag().toString('hex');
+
+console.log(\`Ciphertext: \${ciphertext}\`);
+console.log(\`Auth Tag: \${tag}\`);`;
+        } else {
+          nodeCode += `
+// AES-CBC Encryption
+const cipher = crypto.createCipheriv('${method}', key, iv);
+let ciphertext = cipher.update(plaintext, 'utf8', 'hex');
+ciphertext += cipher.final('hex');
+
+console.log(\`Ciphertext: \${ciphertext}\`);`;
+        }
+      } else {
+        // ChaCha20
+        nodeCode += `
+// ChaCha20 Encryption
+const cipher = crypto.createCipheriv('chacha20', key, iv);
+let ciphertext = cipher.update(plaintext, 'utf8', 'hex');
+ciphertext += cipher.final('hex');
+
+console.log(\`Ciphertext: \${ciphertext}\`);`;
+      }
+      return nodeCode;
+    }
+  };
 
   // Decryption state
   const [decCiphertext, setDecCiphertext] = useState('');
@@ -88,6 +204,38 @@ const SymmetricLab: React.FC = () => {
       alert(e.response?.data?.detail || 'Encryption failed. Check key hex structure.');
     } finally {
       setEncLoading(false);
+    }
+  };
+
+  const handleTamperDecrypt = async () => {
+    if (!encResult) return;
+    
+    const originalCiphertext = encResult.ciphertext;
+    const bytes: string[] = [];
+    for (let i = 0; i < originalCiphertext.length; i += 2) {
+      bytes.push(originalCiphertext.substr(i, 2));
+    }
+    
+    const modifiedCiphertext = bytes.map((b, idx) => tamperMap[idx] !== undefined ? tamperMap[idx] : b).join('');
+    
+    setTamperLoading(true);
+    setTamperDecResult(null);
+    setTamperDecError(null);
+    
+    try {
+      const response = await api.post('/symmetric/decrypt', {
+        ciphertext: modifiedCiphertext,
+        key: encKey,
+        iv: encResult.iv,
+        algorithm: encAlg,
+        mode: encMode,
+        tag: encResult.tag || undefined
+      });
+      setTamperDecResult(response.data.plaintext);
+    } catch (e: any) {
+      setTamperDecError(e.response?.data?.detail || 'Decryption failed.');
+    } finally {
+      setTamperLoading(false);
     }
   };
 
@@ -301,6 +449,154 @@ const SymmetricLab: React.FC = () => {
                           </div>
                         )}
                       </div>
+                    </div>
+
+                    {/* Bit-Flipping Integrity Sandbox */}
+                    <div className="bg-cyber-darker border border-gray-800 rounded-lg p-4 space-y-4">
+                      <div>
+                        <span className="text-xs font-mono uppercase text-rose-450 flex items-center gap-1.5 font-bold">
+                          <ShieldAlert className="w-4 h-4" />
+                          Bit-Flipping Integrity Playground
+                        </span>
+                        <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
+                          Click any byte block below to flip its bits (corrupting it). Try decrypting to see how AES-GCM tags reject changes, whereas AES-CBC decrypts into garbage!
+                        </p>
+                      </div>
+
+                      {/* Byte Grid */}
+                      <div className="flex flex-wrap gap-1.5 p-3 bg-black/30 rounded border border-gray-900 max-h-36 overflow-y-auto font-mono text-xs">
+                        {(() => {
+                          const originalHex = encResult.ciphertext;
+                          const bytes: string[] = [];
+                          for (let i = 0; i < originalHex.length; i += 2) {
+                            bytes.push(originalHex.substr(i, 2));
+                          }
+                          return bytes.map((byte, idx) => {
+                            const isTampered = tamperMap[idx] !== undefined;
+                            const displayByte = isTampered ? tamperMap[idx] : byte;
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  setTamperMap(prev => {
+                                    const next = { ...prev };
+                                    if (next[idx] !== undefined) {
+                                      delete next[idx];
+                                    } else {
+                                      next[idx] = '00'; // Tampered value
+                                    }
+                                    return next;
+                                  });
+                                }}
+                                className={`px-2 py-0.5 rounded border text-[10px] transition-colors cursor-pointer ${
+                                  isTampered
+                                    ? 'bg-rose-950/40 border-rose-500 text-rose-450 font-bold shadow-[0_0_10px_rgba(244,63,94,0.1)]'
+                                    : 'bg-gray-900 border-gray-850 hover:border-gray-700 text-gray-500'
+                                }`}
+                                title={`Byte ${idx}: Click to toggle tamper`}
+                              >
+                                {displayByte}
+                              </button>
+                            );
+                          });
+                        })()}
+                      </div>
+
+                      {/* Tamper controls */}
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={handleTamperDecrypt}
+                          disabled={tamperLoading}
+                          className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded text-xs font-bold uppercase transition-colors cursor-pointer"
+                        >
+                          {tamperLoading ? 'Decrypting...' : 'Decrypt Tampered Payload'}
+                        </button>
+                        {Object.keys(tamperMap).length > 0 && (
+                          <button
+                            onClick={() => {
+                              setTamperMap({});
+                              setTamperDecResult(null);
+                              setTamperDecError(null);
+                            }}
+                            className="text-[10px] text-gray-500 hover:text-white font-mono flex items-center gap-1 cursor-pointer"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            Reset Tampering
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Decryption Result */}
+                      {tamperDecResult && (
+                        <div className="p-3 bg-emerald-950/20 border border-emerald-900/30 rounded text-xs">
+                          <span className="text-[10px] text-emerald-400 font-bold uppercase block mb-1">
+                            ✔ Decryption Succeeded (CBC Mode Garbage):
+                          </span>
+                          <span className="font-mono text-white break-all bg-gray-900 p-2 rounded block">{tamperDecResult}</span>
+                        </div>
+                      )}
+                      
+                      {tamperDecError && (
+                        <div className="p-3 bg-rose-950/25 border border-rose-900/30 rounded text-xs">
+                          <span className="text-[10px] text-rose-455 font-bold uppercase block mb-1">
+                            ❌ Decryption Refused (GCM Integrity Catch):
+                          </span>
+                          <span className="text-gray-300">
+                            Authentication Tag check failed! The engine detected ciphertext tampering and aborted decryption.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* View Code Recipes Panel */}
+                    <div className="bg-blue-950/5 border border-blue-500/10 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono uppercase text-blue-400 flex items-center gap-1.5 font-bold">
+                          <Code className="w-3.5 h-3.5" />
+                          View Code Recipe
+                        </span>
+                        
+                        <div className="flex gap-2">
+                          <div className="flex bg-cyber-darker rounded p-0.5 border border-gray-850 text-[10px]">
+                            <button
+                              onClick={() => setCodeLang('python')}
+                              className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                                codeLang === 'python'
+                                  ? 'bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30'
+                                  : 'text-gray-500 hover:text-gray-300'
+                              }`}
+                            >
+                              Python
+                            </button>
+                            <button
+                              onClick={() => setCodeLang('node')}
+                              className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                                codeLang === 'node'
+                                  ? 'bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30'
+                                  : 'text-gray-500 hover:text-gray-300'
+                              }`}
+                            >
+                              Node.js
+                            </button>
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(getSymmetricCodeRecipe());
+                              setCopiedCode(true);
+                              setTimeout(() => setCopiedCode(false), 2000);
+                            }}
+                            className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                            title="Copy Code Recipe"
+                          >
+                            {copiedCode ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <pre className="bg-black/45 text-gray-300 font-mono text-[10px] p-3 rounded-lg overflow-x-auto leading-relaxed border border-gray-900 select-all">
+                        {getSymmetricCodeRecipe()}
+                      </pre>
                     </div>
                   </div>
                 )}

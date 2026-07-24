@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Compass, Copy, Check } from 'lucide-react';
+import { Compass, Copy, Check, Shield, Terminal, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
 import { Eli5Tooltip } from '../components/Eli5Tooltip';
@@ -27,6 +27,20 @@ const ClassicalLab: React.FC = () => {
   // Decryption keys
   const [decCaesarShift, setDecCaesarShift] = useState(3);
   const [decVigenereKey, setDecVigenereKey] = useState('KEY');
+
+  // Gamified Mission Tracker State
+  const [missionInput, setMissionInput] = useState('');
+  const TARGET_PLAINTEXT = 'CRYPTO IS FUN';
+
+  const missionSolved = useMemo(() => {
+    return missionInput.trim().toUpperCase() === TARGET_PLAINTEXT;
+  }, [missionInput]);
+
+  useEffect(() => {
+    if (missionSolved) {
+      updateLabProgress('classical', 60);
+    }
+  }, [missionSolved]);
 
   useEffect(() => {
     markLabVisited('classical', 'Classical Ciphers Lab', '/labs/classical');
@@ -218,6 +232,95 @@ const ClassicalLab: React.FC = () => {
           "Frequency Attack: English letters like E, T, A occur most often. Simple ciphers leave this footprint visible!"
         ]}
       />
+
+      {/* Cyber Agent Mission Tracker */}
+      <div className="glass-panel p-5 bg-gradient-to-r from-amber-500/5 to-amber-600/5 border border-amber-500/10 rounded-xl space-y-4 mb-8">
+        <div className="flex items-center justify-between border-b border-gray-800/60 pb-3">
+          <div className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-amber-400" />
+            <div>
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider">Cyber Agent Objective</h2>
+              <p className="text-[10px] text-gray-505">Decrypt the spy's intercept and authorize the challenges link.</p>
+            </div>
+          </div>
+          <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20">
+            Active Mission
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+          
+          {/* Mission Objective 1 */}
+          <div className="md:col-span-7 space-y-3">
+            <div className="flex items-start gap-2.5">
+              <span className={`w-4 h-4 rounded-full mt-0.5 flex items-center justify-center text-[10px] font-bold ${missionSolved ? 'bg-emerald-500 text-black animate-pulse' : 'bg-gray-800 text-gray-400'}`}>
+                {missionSolved ? '✔' : '1'}
+              </span>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-white">Objective 1: Decrypt Caesar Intercept</p>
+                <p className="text-[11px] text-gray-400">
+                  Intercepted message: <span className="font-mono text-amber-300 font-bold bg-black/40 px-1.5 py-0.5 rounded border border-gray-850">FUBSWR LV IXQ</span> (Caesar Shift: 3).
+                </p>
+              </div>
+            </div>
+
+            {/* Input field */}
+            <div className="pl-6 flex gap-2">
+              <input
+                type="text"
+                value={missionInput}
+                onChange={(e) => setMissionInput(e.target.value.toUpperCase())}
+                placeholder="Enter decrypted plaintext..."
+                disabled={missionSolved}
+                className="bg-cyber-darker border border-gray-800 rounded-lg p-2 px-3 text-white font-mono text-xs uppercase focus:outline-none focus:border-amber-500 w-full max-w-xs disabled:opacity-50"
+              />
+              {missionSolved && (
+                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-bold font-mono">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Decrypted!
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Mission Objective 2 */}
+          <div className="md:col-span-5 border-t md:border-t-0 md:border-l border-gray-800/80 pt-4 md:pt-0 md:pl-6 space-y-3">
+            <div className="flex items-start gap-2.5">
+              <span className={`w-4 h-4 rounded-full mt-0.5 flex items-center justify-center text-[10px] font-bold ${missionSolved ? 'bg-emerald-500 text-black' : 'bg-gray-900 text-gray-600'}`}>
+                {missionSolved ? '✔' : '2'}
+              </span>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-white">Objective 2: Master Server Quiz</p>
+                <p className="text-[11px] text-gray-400">
+                  Submit credentials and claim score on scoreboard.
+                </p>
+              </div>
+            </div>
+
+            <div className="pl-6">
+              <a
+                href="/challenges"
+                onClick={(e) => {
+                  if (!missionSolved) {
+                    e.preventDefault();
+                    alert('Complete Objective 1 first to authorize connection!');
+                  }
+                }}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded text-xs font-bold font-mono uppercase transition-all ${
+                  missionSolved
+                    ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-[0_0_10px_rgba(245,158,11,0.2)] cursor-pointer'
+                    : 'bg-gray-850 text-gray-550 cursor-not-allowed border border-gray-900'
+                }`}
+              >
+                <Terminal className="w-3.5 h-3.5" />
+                Go to Challenges
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         

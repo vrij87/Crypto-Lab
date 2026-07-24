@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Key, Lock, Unlock, Copy, Check, RefreshCw, Info } from 'lucide-react';
+import { Shield, Key, Lock, Unlock, Copy, Check, RefreshCw, Info, Code } from 'lucide-react';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
@@ -41,6 +41,89 @@ const AsymmetricLab: React.FC = () => {
   const [decPlaintext, setDecPlaintext] = useState<string | null>(null);
   const [decLoading, setDecLoading] = useState(false);
   const [decError, setDecError] = useState<string | null>(null);
+
+  // Code Recipes states
+  const [codeLang, setCodeLang] = useState<'python' | 'node'>('python');
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  const getAsymmetricCodeRecipe = () => {
+    const escapedPlaintext = encPlaintext.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    if (codeLang === 'python') {
+      return `from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives import hashes
+import base64
+
+# 1. Generate RSA Private/Public Keypair
+private_key = rsa.generate_private_key(
+    public_exponent=65537,
+    key_size=${keySize}
+)
+public_key = private_key.public_key()
+
+# 2. Plaintext to encrypt
+plaintext = b"${escapedPlaintext}"
+
+# 3. Encrypt using Recipient's Public Key (with OAEP padding)
+ciphertext = public_key.encrypt(
+    plaintext,
+    padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+        algorithm=hashes.SHA256(),
+        label=None
+    )
+)
+
+print("Ciphertext (Base64):", base64.b64encode(ciphertext).decode())
+
+# 4. Decrypt using corresponding Private Key
+decrypted_bytes = private_key.decrypt(
+    ciphertext,
+    padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+        algorithm=hashes.SHA256(),
+        label=None
+    )
+)
+
+print("Decrypted Plaintext:", decrypted_bytes.decode('utf-8'))`;
+    } else {
+      return `const crypto = require('crypto');
+
+// 1. Generate RSA Private/Public Keypair
+const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+  modulusLength: ${keySize},
+  publicKeyEncoding: { type: 'spki', format: 'pem' },
+  privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
+});
+
+// 2. Plaintext to encrypt
+const message = Buffer.from("${escapedPlaintext}");
+
+// 3. Encrypt using Recipient's Public Key (with OAEP padding)
+const ciphertext = crypto.publicEncrypt(
+  {
+    key: publicKey,
+    padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+    oaepHash: 'sha256'
+  },
+  message
+);
+
+console.log("Ciphertext (Base64):", ciphertext.toString('base64'));
+
+// 4. Decrypt using corresponding Private Key
+const decrypted = crypto.privateDecrypt(
+  {
+    key: privateKey,
+    padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+    oaepHash: 'sha256'
+  },
+  ciphertext
+);
+
+console.log("Decrypted:", decrypted.toString('utf8'));`;
+    }
+  };
 
   const generateKeys = async () => {
     setGenLoading(true);
@@ -326,6 +409,59 @@ const AsymmetricLab: React.FC = () => {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* View Code Recipes Panel for RSA Asymmetric (visible on keygen, encrypt, decrypt) */}
+          {(activeTab === 'keygen' || activeTab === 'encrypt' || activeTab === 'decrypt') && (
+            <div className="bg-indigo-950/5 border border-indigo-500/10 rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono uppercase text-indigo-400 flex items-center gap-1.5 font-bold">
+                  <Code className="w-3.5 h-3.5" />
+                  View RSA Code Recipe
+                </span>
+                
+                <div className="flex gap-2">
+                  <div className="flex bg-cyber-darker rounded p-0.5 border border-gray-850 text-[10px]">
+                    <button
+                      onClick={() => setCodeLang('python')}
+                      className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                        codeLang === 'python'
+                          ? 'bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30'
+                          : 'text-gray-500 hover:text-gray-300'
+                      }`}
+                    >
+                      Python
+                    </button>
+                    <button
+                      onClick={() => setCodeLang('node')}
+                      className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                        codeLang === 'node'
+                          ? 'bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30'
+                          : 'text-gray-500 hover:text-gray-300'
+                      }`}
+                    >
+                      Node.js
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(getAsymmetricCodeRecipe());
+                      setCopiedCode(true);
+                      setTimeout(() => setCopiedCode(false), 2000);
+                    }}
+                    className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                    title="Copy Code Recipe"
+                  >
+                    {copiedCode ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <pre className="bg-black/45 text-gray-300 font-mono text-[10px] p-3 rounded-lg overflow-x-auto leading-relaxed border border-gray-900 select-all">
+                {getAsymmetricCodeRecipe()}
+              </pre>
             </div>
           )}
 

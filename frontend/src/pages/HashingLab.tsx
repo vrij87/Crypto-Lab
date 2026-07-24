@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Hash, Copy, Check, RefreshCw, BarChart2, ShieldAlert } from 'lucide-react';
+import { Hash, Copy, Check, RefreshCw, BarChart2, ShieldAlert, Code } from 'lucide-react';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
@@ -27,6 +27,39 @@ const HashingLab: React.FC = () => {
   const [genOutput, setGenOutput] = useState('');
   const [copied, setCopied] = useState(false);
   const [genLoading, setGenLoading] = useState(false);
+  const [codeLang, setCodeLang] = useState<'python' | 'node'>('python');
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  const getHashingCodeRecipe = () => {
+    const escapedInput = genInput.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    const pyMethod = genAlg.toLowerCase().replace('-', '').replace('sha3_256', 'sha3_256'); // e.g. sha256, md5, sha1
+    const nodeMethod = genAlg.toLowerCase();
+
+    if (codeLang === 'python') {
+      return `import hashlib
+
+# Input text to hash
+text = "${escapedInput}"
+
+# Calculate ${genAlg} hash
+hash_object = hashlib.${pyMethod}(text.encode('utf-8'))
+hex_dig = hash_object.hexdigest()
+
+print(f"${genAlg} Digest: {hex_dig}")
+# Expected output: ${genOutput}`;
+    } else {
+      return `const crypto = require('crypto');
+
+// Input text to hash
+const text = "${escapedInput}";
+
+// Calculate ${genAlg} hash
+const hash = crypto.createHash('${nodeMethod}').update(text).digest('hex');
+
+console.log(\`${genAlg} Digest: \${hash}\`);
+// Expected output: ${genOutput}`;
+    }
+  };
 
   // Tab 2: Compare State
   const [compInput1, setCompInput1] = useState('crypto');
@@ -239,19 +272,72 @@ const HashingLab: React.FC = () => {
                 </div>
 
                 {genOutput && (
-                  <div className="bg-cyber-darker border border-gray-800 rounded-lg p-4 relative overflow-hidden">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-mono uppercase text-gray-400">{genAlg} Digest</span>
-                      <button
-                        onClick={() => copyToClipboard(genOutput)}
-                        className="text-gray-400 hover:text-white transition-colors"
-                        title="Copy to clipboard"
-                      >
-                        {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                      </button>
+                  <div className="space-y-4">
+                    <div className="bg-cyber-darker border border-gray-800 rounded-lg p-4 relative overflow-hidden">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-mono uppercase text-gray-400">{genAlg} Digest</span>
+                        <button
+                          onClick={() => copyToClipboard(genOutput)}
+                          className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                          title="Copy to clipboard"
+                        >
+                          {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <div className="text-white font-mono break-all text-sm leading-relaxed p-1 bg-gray-900/60 rounded border border-gray-850">
+                        {genOutput}
+                      </div>
                     </div>
-                    <div className="text-white font-mono break-all text-sm leading-relaxed p-1 bg-gray-900/60 rounded border border-gray-850">
-                      {genOutput}
+
+                    {/* View Code Recipe Panel */}
+                    <div className="bg-cyan-950/5 border border-cyan-500/10 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono uppercase text-cyan-400 flex items-center gap-1.5 font-bold">
+                          <Code className="w-3.5 h-3.5" />
+                          View Code Recipe
+                        </span>
+                        
+                        <div className="flex gap-2">
+                          <div className="flex bg-cyber-darker rounded p-0.5 border border-gray-850 text-[10px]">
+                            <button
+                              onClick={() => setCodeLang('python')}
+                              className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                                codeLang === 'python'
+                                  ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
+                                  : 'text-gray-500 hover:text-gray-300'
+                              }`}
+                            >
+                              Python
+                            </button>
+                            <button
+                              onClick={() => setCodeLang('node')}
+                              className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                                codeLang === 'node'
+                                  ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
+                                  : 'text-gray-500 hover:text-gray-300'
+                              }`}
+                            >
+                              Node.js
+                            </button>
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(getHashingCodeRecipe());
+                              setCopiedCode(true);
+                              setTimeout(() => setCopiedCode(false), 2000);
+                            }}
+                            className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                            title="Copy Code Recipe"
+                          >
+                            {copiedCode ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <pre className="bg-black/45 text-gray-300 font-mono text-[10px] p-3 rounded-lg overflow-x-auto leading-relaxed border border-gray-900 select-all">
+                        {getHashingCodeRecipe()}
+                      </pre>
                     </div>
                   </div>
                 )}
