@@ -160,7 +160,7 @@ def test_certificate_analysis_failure(client):
 def test_challenges(client):
     list_resp = client.get("/api/challenges/list")
     assert list_resp.status_code == 200
-    assert len(list_resp.json()) > 0
+    assert len(list_resp.json()) == 10
     challenge_id = list_resp.json()[0]["id"]
     
     status_resp = client.get("/api/challenges/status/testuser")
@@ -238,7 +238,7 @@ def test_adaptive_challenges(client):
     full_resp = client.get("/api/challenges/list?overall_progress=50")
     assert full_resp.status_code == 200
     full_list = full_resp.json()
-    assert len(full_list) > 0
+    assert len(full_list) == 10
     
     diff_order = {"easy": 0, "medium": 1, "hard": 2}
     last_difficulty_rank = 0
@@ -251,7 +251,7 @@ def test_adaptive_challenges(client):
     filtered_resp = client.get("/api/challenges/list?overall_progress=10&completed_labs=hashing")
     assert filtered_resp.status_code == 200
     filtered_list = filtered_resp.json()
-    assert len(filtered_list) > 0
+    assert len(filtered_list) == 10
     
     # Verify categories are restricted to Hashing and Overview
     for chal in filtered_list:
@@ -261,6 +261,6 @@ def test_adaptive_challenges(client):
     multi_filtered_resp = client.get("/api/challenges/list?overall_progress=15&completed_labs=hashing,passwords")
     assert multi_filtered_resp.status_code == 200
     multi_filtered_list = multi_filtered_resp.json()
-    assert len(multi_filtered_list) > 0
+    assert len(multi_filtered_list) == 10
     for chal in multi_filtered_list:
         assert chal["category"] in ("Hashing", "Passwords", "Overview")

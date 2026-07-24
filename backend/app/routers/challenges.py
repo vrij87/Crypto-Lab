@@ -89,6 +89,14 @@ def list_challenges(
         # Fallback if no labs are unlocked yet (show Hashing as default learning path start)
         if not filtered_challenges:
             filtered_challenges = [c for c in challenges if c.category in ("Hashing", "Overview")]
+            
+        # Supplement with other random challenges to make sure the test always has exactly 10 questions
+        if len(filtered_challenges) < 10:
+            remaining = [c for c in challenges if c not in filtered_challenges]
+            needed = 10 - len(filtered_challenges)
+            if remaining and needed > 0:
+                supplement = random.sample(remaining, min(len(remaining), needed))
+                filtered_challenges.extend(supplement)
     else:
         filtered_challenges = challenges
         
