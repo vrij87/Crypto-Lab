@@ -20,6 +20,7 @@ class UserScore(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     score = Column(Integer, default=0)
     completed_challenges = Column(JSON, default=list)  # JSON array of challenge IDs
+    token = Column(String, nullable=True)
 
 class UserProgress(Base):
     __tablename__ = "user_progress"

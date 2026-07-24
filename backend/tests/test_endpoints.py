@@ -166,6 +166,8 @@ def test_challenges(client):
     status_resp = client.get("/api/challenges/status/testuser")
     assert status_resp.status_code == 200
     assert status_resp.json()["score"] == 0
+    token = status_resp.json().get("token")
+    assert token is not None
     
     # Submit incorrect answer
     sub_resp = client.post(
@@ -174,7 +176,8 @@ def test_challenges(client):
             "username": "testuser",
             "challenge_id": challenge_id,
             "answer_index": 0 # Wrong answer for the MD5 broken challenge (SHA-256 is 0)
-        }
+        },
+        headers={"X-Scoreboard-Token": token}
     )
     assert sub_resp.status_code == 200
     assert sub_resp.json()["correct"] is False
@@ -187,8 +190,45 @@ def test_challenges(client):
             "username": "testuser",
             "challenge_id": challenge_id,
             "answer_index": 1
-        }
+        },
+        headers={"X-Scoreboard-Token": token}
     )
     assert sub_resp_correct.status_code == 200
     assert sub_resp_correct.json()["correct"] is True
     assert sub_resp_correct.json()["score"] == 10
+
+def test_unique_usernames(client):
+    # 1. Register a user
+    resp = client.get("/api/challenges/status/clashuser")
+    assert resp.status_code == 200
+    original_token = resp.json().get("token")
+    assert original_token is not None
+
+    # 2. Try to register/status query the same username with no token (simulating a different client)
+    conflict_resp = client.get("/api/challenges/status/clashuser")
+    assert conflict_resp.status_code == 409
+    data = conflict_resp.json()
+    assert "detail" in data
+    assert data["detail"]["message"] == "Username already taken"
+    assert len(data["detail"]["suggestions"]) == 3
+    for sug in data["detail"]["suggestions"]:
+        assert "clashuser" in sug
+
+    # 3. Try to register/status query with an incorrect token
+    conflict_resp_bad_token = client.get(
+        "/api/challenges/status/clashuser",
+        headers={"X-Scoreboard-Token": "badtoken123"}
+    )
+    assert conflict_resp_bad_token.status_code == 409
+
+    # 4. Try to submit with incorrect token
+    submit_conflict = client.post(
+        "/api/challenges/submit",
+        json={
+            "username": "clashuser",
+            "challenge_id": 1,
+            "answer_index": 0
+        },
+        headers={"X-Scoreboard-Token": "badtoken123"}
+    )
+    assert submit_conflict.status_code == 409

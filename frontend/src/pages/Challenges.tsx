@@ -21,6 +21,10 @@ const Challenges: React.FC = () => {
   const [completedList, setCompletedList] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   
+  // Unique Username & Suggestions States
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  
   // Selection/Submission States
   const [activeChal, setActiveChal] = useState<Challenge | null>(null);
   const [selectedOpt, setSelectedOpt] = useState<number | null>(null);
@@ -57,25 +61,67 @@ const Challenges: React.FC = () => {
   const fetchUserStatus = async () => {
     try {
       const response = await api.get(`/challenges/status/${username}`);
+      if (response.data.token) {
+        localStorage.setItem('cryptolab_scoreboard_token', response.data.token);
+      }
       setUserScore(response.data.score);
       setCompletedList(response.data.completed_challenges || []);
-    } catch (e) {
+      setUsernameError(null);
+      setSuggestions([]);
+    } catch (e: any) {
       console.error(e);
+      if (e.response && e.response.status === 409) {
+        localStorage.removeItem('cryptolab_username');
+        localStorage.removeItem('cryptolab_scoreboard_token');
+        setUsername('');
+        const detail = e.response.data.detail;
+        setUsernameError(detail.message || 'Session expired or username taken.');
+        setSuggestions(detail.suggestions || []);
+      }
+    }
+  };
+
+  const handleDirectRegister = async (nameToRegister: string) => {
+    setUsernameError(null);
+    setSuggestions([]);
+    try {
+      localStorage.removeItem('cryptolab_scoreboard_token');
+      const response = await api.get(`/challenges/status/${nameToRegister}`);
+      if (response.data.token) {
+        localStorage.setItem('cryptolab_scoreboard_token', response.data.token);
+      }
+      setUsername(nameToRegister);
+      localStorage.setItem('cryptolab_username', nameToRegister);
+      setUserScore(response.data.score);
+      setCompletedList(response.data.completed_challenges || []);
+    } catch (err: any) {
+      if (err.response && err.response.status === 409) {
+        const detail = err.response.data.detail;
+        setUsernameError(detail.message || 'Username is already taken');
+        setSuggestions(detail.suggestions || []);
+      } else {
+        setUsernameError('An error occurred. Please try again.');
+      }
+      console.error(err);
     }
   };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (tempUsername.trim()) {
-      setUsername(tempUsername.trim());
+      handleDirectRegister(tempUsername.trim());
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('cryptolab_username');
+    localStorage.removeItem('cryptolab_scoreboard_token');
     setUsername('');
     setUserScore(0);
     setCompletedList([]);
+    setTempUsername('');
+    setUsernameError(null);
+    setSuggestions([]);
   };
 
   const handleSubmitAnswer = async () => {
@@ -98,8 +144,16 @@ const Challenges: React.FC = () => {
         const percent = Math.min(100, Math.round((doneList.length / (challenges.length || 1)) * 100));
         updateLabProgress('challenges', Math.max(20, percent));
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      if (e.response && e.response.status === 409) {
+        localStorage.removeItem('cryptolab_username');
+        localStorage.removeItem('cryptolab_scoreboard_token');
+        setUsername('');
+        const detail = e.response.data.detail;
+        setUsernameError(detail.message || 'Session expired or username taken.');
+        setSuggestions(detail.suggestions || []);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -166,9 +220,37 @@ const Challenges: React.FC = () => {
                 required
                 className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-3 text-center text-white focus:outline-none focus:border-rose-500 font-mono text-sm"
               />
+              {usernameError && (
+                <div className="p-3.5 bg-rose-950/20 border border-rose-900/30 rounded-lg flex items-start gap-2.5 text-left">
+                  <AlertCircle className="w-4 h-4 text-rose-450 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-rose-450">{usernameError}</p>
+                    {suggestions.length > 0 && (
+                      <div className="mt-2.5">
+                        <p className="text-[11px] text-gray-400 mb-1.5 font-medium">Available alternatives:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {suggestions.map((sug) => (
+                            <button
+                              key={sug}
+                              type="button"
+                              onClick={() => {
+                                setTempUsername(sug);
+                                handleDirectRegister(sug);
+                              }}
+                              className="px-2 py-0.5 rounded bg-cyber-dark border border-gray-850 hover:border-rose-500/50 text-[11px] text-rose-400 hover:text-white font-mono transition-all cursor-pointer"
+                            >
+                              {sug}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               <button
                 type="submit"
-                className="w-full px-4 py-2.5 rounded bg-gradient-to-r from-rose-600 to-pink-600 text-white font-bold hover:from-rose-500 hover:to-pink-500 transition-all text-sm"
+                className="w-full px-4 py-2.5 rounded bg-gradient-to-r from-rose-600 to-pink-600 text-white font-bold hover:from-rose-500 hover:to-pink-500 transition-all text-sm cursor-pointer"
               >
                 Access Challenges
               </button>

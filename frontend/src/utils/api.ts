@@ -7,12 +7,16 @@ const api = axios.create({
   },
 });
 
-// Automatically inject JWT bearer token into headers if user is logged in
+// Automatically inject JWT bearer token or scoreboard token into headers if user is logged in
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('supabase_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    const scoreboardToken = localStorage.getItem('cryptolab_scoreboard_token');
+    if (scoreboardToken) {
+      config.headers['X-Scoreboard-Token'] = scoreboardToken;
     }
     return config;
   },

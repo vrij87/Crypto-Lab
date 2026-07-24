@@ -1,6 +1,8 @@
 import re
+import secrets
+import random
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Challenge, UserScore, UserProgress
@@ -14,6 +16,38 @@ def sanitize_username(username: str) -> str:
     clean = re.sub(r"[^\w\-\.]", "", username.strip())[:32]
     return clean if clean else "AnonymousLearner"
 
+def generate_alternative_usernames(username: str, db: Session) -> List[str]:
+    """Generates three alternative available usernames."""
+    suggestions = []
+    base = username
+    
+    suffixes = [
+        lambda: str(random.randint(10, 99)),
+        lambda: str(random.randint(100, 999)),
+        lambda: "coder",
+        lambda: "cyber",
+        lambda: "sec",
+        lambda: "pro",
+    ]
+    
+    attempts = 0
+    while len(suggestions) < 3 and attempts < 100:
+        attempts += 1
+        suffix = random.choice(suffixes)()
+        candidate = f"{base}_{suffix}"
+        
+        exists = db.query(UserScore).filter(UserScore.username == candidate).first()
+        if not exists and candidate not in suggestions:
+            suggestions.append(candidate)
+            
+    while len(suggestions) < 3:
+        candidate = f"{base}_{random.randint(1000, 9999)}"
+        exists = db.query(UserScore).filter(UserScore.username == candidate).first()
+        if not exists and candidate not in suggestions:
+            suggestions.append(candidate)
+            
+    return suggestions
+
 @router.get("/list", response_model=List[ChallengeSchema])
 def list_challenges(db: Session = Depends(get_db)):
     """Returns list of available cryptography quiz challenges."""
@@ -21,7 +55,12 @@ def list_challenges(db: Session = Depends(get_db)):
     return challenges
 
 @router.get("/status/{username}", response_model=UserScoreResponse)
-def get_user_status(username: str, db: Session = Depends(get_db), current_user: dict | None = Depends(get_current_user)):
+def get_user_status(
+    username: str, 
+    db: Session = Depends(get_db), 
+    current_user: dict | None = Depends(get_current_user),
+    x_scoreboard_token: str | None = Header(None, alias="X-Scoreboard-Token")
+):
     """
     Fetches or initializes user quiz progress.
     If authenticated (Authorization header present), tracks via UserProgress, using username/email.
@@ -49,15 +88,43 @@ def get_user_status(username: str, db: Session = Depends(get_db), current_user: 
         
     clean_name = sanitize_username(username)
     user = db.query(UserScore).filter(UserScore.username == clean_name).first()
+    
     if not user:
-        user = UserScore(username=clean_name, score=0, completed_challenges=[])
+        new_token = secrets.token_hex(16)
+        user = UserScore(username=clean_name, score=0, completed_challenges=[], token=new_token)
         db.add(user)
         db.commit()
         db.refresh(user)
+        return user
+
+    # Backwards compatibility for existing rows without tokens
+    if user.token is None:
+        client_token = x_scoreboard_token if x_scoreboard_token else secrets.token_hex(16)
+        user.token = client_token
+        db.commit()
+        db.refresh(user)
+        return user
+
+    # Authenticate token ownership
+    if not x_scoreboard_token or x_scoreboard_token != user.token:
+        alternatives = generate_alternative_usernames(clean_name, db)
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "Username already taken",
+                "suggestions": alternatives
+            }
+        )
+        
     return user
 
 @router.post("/submit", response_model=ChallengeSubmitResponse)
-def submit_answer(payload: ChallengeSubmitRequest, db: Session = Depends(get_db), current_user: dict | None = Depends(get_current_user)):
+def submit_answer(
+    payload: ChallengeSubmitRequest, 
+    db: Session = Depends(get_db), 
+    current_user: dict | None = Depends(get_current_user),
+    x_scoreboard_token: str | None = Header(None, alias="X-Scoreboard-Token")
+):
     """
     Evaluates challenge submission and updates user score.
     If authenticated, updates the UserProgress table.
@@ -108,11 +175,31 @@ def submit_answer(payload: ChallengeSubmitRequest, db: Session = Depends(get_db)
         
     clean_name = sanitize_username(payload.username)
     user = db.query(UserScore).filter(UserScore.username == clean_name).first()
+    
     if not user:
-        user = UserScore(username=clean_name, score=0, completed_challenges=[])
+        new_token = secrets.token_hex(16)
+        user = UserScore(username=clean_name, score=0, completed_challenges=[], token=new_token)
         db.add(user)
         db.commit()
         db.refresh(user)
+    else:
+        # Check token ownership if user exists and has a token
+        if user.token is not None:
+            if not x_scoreboard_token or x_scoreboard_token != user.token:
+                alternatives = generate_alternative_usernames(clean_name, db)
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "message": "Username already taken",
+                        "suggestions": alternatives
+                    }
+                )
+        else:
+            # Backwards compatibility: adopt ownership of existing record if no token was set
+            client_token = x_scoreboard_token if x_scoreboard_token else secrets.token_hex(16)
+            user.token = client_token
+            db.commit()
+            db.refresh(user)
         
     completed_list = list(user.completed_challenges or [])
     if is_correct and challenge.id not in completed_list:

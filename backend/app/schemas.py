@@ -183,5 +183,6 @@ class UserScoreResponse(BaseModel):
     username: str
     score: int
     completed_challenges: List[int]
+    token: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
