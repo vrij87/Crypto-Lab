@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Terminal, CheckCircle2, AlertCircle, HelpCircle, User, RefreshCw, ChevronRight } from 'lucide-react';
+import { Award, Terminal, CheckCircle2, AlertCircle, HelpCircle, User, RefreshCw, ChevronRight, XCircle } from 'lucide-react';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 
@@ -184,8 +184,8 @@ const Challenges: React.FC = () => {
       setTimeout(() => {
         const currentIndex = challenges.findIndex(c => c.id === activeChal.id);
         const nextUnanswered = 
-          challenges.slice(currentIndex + 1).find(c => !completedList.includes(c.id) && !userAnswers[c.id]) ||
-          challenges.slice(0, currentIndex).find(c => !completedList.includes(c.id) && !userAnswers[c.id]);
+          challenges.slice(currentIndex + 1).find(c => c.id !== activeChal.id && userAnswers[c.id] === undefined) ||
+          challenges.slice(0, currentIndex).find(c => c.id !== activeChal.id && userAnswers[c.id] === undefined);
           
         if (nextUnanswered) {
           setActiveChal(nextUnanswered);
@@ -218,7 +218,7 @@ const Challenges: React.FC = () => {
     }
   };
 
-  const isQuizFinished = challenges.length > 0 && challenges.every(c => completedList.includes(c.id) || userAnswers[c.id] !== undefined);
+  const isQuizFinished = challenges.length > 0 && challenges.every(c => userAnswers[c.id] !== undefined);
 
   const getDifficultyColor = (diff: string) => {
     switch (diff.toLowerCase()) {
@@ -249,6 +249,8 @@ const Challenges: React.FC = () => {
             <span className="text-white font-mono font-bold">{username}</span>
             <span className="text-gray-500">|</span>
             <span className="text-rose-450 font-bold">Score: {userScore} pts</span>
+            <span className="text-gray-500">|</span>
+            <span className="text-gray-400">Solved: {completedList.length}</span>
             <button onClick={handleLogout} className="text-gray-500 hover:text-white transition-colors ml-2">Log out</button>
           </div>
         )}
@@ -328,7 +330,9 @@ const Challenges: React.FC = () => {
               ) : (
                 <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
                   {challenges.map((chal) => {
-                    const isSolved = completedList.includes(chal.id);
+                    const ans = userAnswers[chal.id];
+                    const isAnswered = ans !== undefined;
+                    const isAnsCorrect = ans?.correct;
                     return (
                       <button
                         key={chal.id}
@@ -340,8 +344,12 @@ const Challenges: React.FC = () => {
                         }`}
                       >
                         <div className="flex items-center space-x-2.5">
-                          {isSolved ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                          {isAnswered ? (
+                            isAnsCorrect ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                            ) : (
+                              <XCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />
+                            )
                           ) : (
                             <HelpCircle className="w-4 h-4 text-gray-600 flex-shrink-0" />
                           )}
@@ -374,14 +382,14 @@ const Challenges: React.FC = () => {
                   <div className="bg-cyber-darker p-3 rounded-lg border border-gray-800 text-center">
                     <span className="text-[10px] text-gray-500 font-mono block">CORRECT</span>
                     <span className="text-lg font-bold text-emerald-400">
-                      {challenges.filter(c => userAnswers[c.id]?.correct || (completedList.includes(c.id) && !userAnswers[c.id])).length}
+                      {challenges.filter(c => userAnswers[c.id]?.correct).length}
                     </span>
                   </div>
                   <div className="bg-cyber-darker p-3 rounded-lg border border-gray-800 text-center">
                     <span className="text-[10px] text-gray-500 font-mono block">SUCCESS RATE</span>
                     <span className="text-lg font-bold text-rose-400">
                       {Math.round(
-                        (challenges.filter(c => userAnswers[c.id]?.correct || (completedList.includes(c.id) && !userAnswers[c.id])).length /
+                        (challenges.filter(c => userAnswers[c.id]?.correct).length /
                           (challenges.length || 1)) *
                           100
                       )}%
@@ -396,10 +404,10 @@ const Challenges: React.FC = () => {
                 {/* Solutions List */}
                 <div className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
                   {challenges.map((chal, index) => {
-                    const ans = userAnswers[chal.id];
-                    const isCorrect = ans ? ans.correct : completedList.includes(chal.id);
-                    const explanation = ans ? ans.explanation : 'You have already completed this exercise. Great job!';
-                    const chosenText = ans ? chal.options[ans.selectedIndex] : 'Previously Solved';
+                    const ans = userAnswers[chal.id] || { correct: false, explanation: '', selectedIndex: 0 };
+                    const isCorrect = ans.correct;
+                    const explanation = ans.explanation;
+                    const chosenText = chal.options[ans.selectedIndex] || 'Unanswered';
 
                     return (
                       <div key={chal.id} className="p-4 bg-cyber-darker/50 border border-gray-800 rounded-lg space-y-3">
@@ -464,7 +472,7 @@ const Challenges: React.FC = () => {
                 {/* Option radios */}
                 <div className="space-y-3">
                   {activeChal.options.map((opt, idx) => {
-                    const isCompleted = completedList.includes(activeChal.id) || userAnswers[activeChal.id] !== undefined;
+                    const isCompleted = userAnswers[activeChal.id] !== undefined;
                     return (
                       <label
                         key={idx}
@@ -492,7 +500,7 @@ const Challenges: React.FC = () => {
                 </div>
 
                 {/* Submit button */}
-                {(!completedList.includes(activeChal.id) && userAnswers[activeChal.id] === undefined) && (
+                {userAnswers[activeChal.id] === undefined && (
                   <button
                     onClick={handleSubmitAnswer}
                     disabled={selectedOpt === null || submitting}
@@ -500,19 +508,6 @@ const Challenges: React.FC = () => {
                   >
                     {submitting ? 'Evaluating...' : 'Submit Answer'}
                   </button>
-                )}
-
-                {/* Local feedback (optional, or just informational if they solved it in a previous session) */}
-                {(completedList.includes(activeChal.id) && userAnswers[activeChal.id] === undefined) && (
-                  <div className="p-4 bg-cyber-darker border border-gray-800 rounded-lg text-xs leading-relaxed space-y-2">
-                    <div className="flex items-center text-emerald-400 font-bold space-x-1">
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Solved in a previous session</span>
-                    </div>
-                    <p className="text-gray-400">
-                      You have already completed this exercise. Great job! Check the final Quiz Summary to view the explanation.
-                    </p>
-                  </div>
                 )}
 
               </div>

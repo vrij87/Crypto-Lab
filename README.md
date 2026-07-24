@@ -29,44 +29,51 @@ Instead of reading static equations, users can interactively manipulate ciphers,
 
 ## ✨ Features & Interactive Laboratories
 
-### ⚡ 1. Hashing Laboratory & Avalanche Visualizer
+### 📜 1. Historical & Classical Ciphers Playground
+- **Classic Algorithms**: **Caesar Shift Cipher**, **Vigenère Multi-letter Substitution**, and **ROT13**.
+- **Interactive Shift Slider**: Drag letters to adjust shift positions in real-time.
+- **Frequency Analysis Visualizer**: View standard English frequencies compared to ciphertext character distributions in a live CSS bar chart.
+
+### ⚡ 2. Hashing Laboratory & Avalanche Visualizer
 - **Supported Hash Algorithms**: SHA-256, SHA-512, SHA-3 (Keccak), MD5, SHA-1, BLAKE2, HMAC.
 - **Avalanche Effect Calculator**: Compare two input strings side-by-side to observe bitwise flips, Hamming distance, and diffusion percentage.
 - **Hash Rate Benchmarks**: Measure hashing throughput in real-time.
 
-### 🔑 2. Password Security Sandbox
+### 🔑 3. Password Security Sandbox
 - **Modern KDFs**: Compare **Argon2id** (PHC winner), **bcrypt**, **PBKDF2**, and **scrypt**.
 - **Password Strength & Entropy Calculator**: Real-time evaluation of password entropy (bits), character variance, and brute-force crack time estimations (offline vs. GPU rig).
 - **Salt & Pepper Simulation**: See how cryptographic salts eliminate rainbow table attacks.
 
-### 🛡️ 3. AES & Symmetric Ciphers Lab
+### 🛡️ 4. AES & Symmetric Ciphers Lab
 - **Block & Stream Ciphers**: AES-128, AES-256 (CBC, GCM AEAD modes) and ChaCha20-Poly1305.
 - **Key & IV Generators**: Hex/Base64 key generation with cryptographic randomness (`urandom`).
 - **Authenticated Encryption**: Demonstrate ciphertext integrity tags (GCM MAC).
 
-### 🔐 4. RSA & ECC Asymmetric Lab
+### 🔐 5. RSA & ECC Asymmetric Lab
 - **Key Pair Generation**: Generate 2048-bit / 4096-bit RSA keys & ECC SECP256k1 keys.
 - **PEM Export**: View formatted Public and Private PEM blocks.
 - **Public Key Encryption**: Encrypt with recipient public keys and decrypt with matching private keys.
 
-### ✍️ 5. Digital Signature & Tamper Lab
+### ✍️ 6. Digital Signature & Tamper Lab
 - **Signatures**: ECDSA & RSA-PSS signature creation and verification.
 - **Tampering Sandbox**: Edit signed payload messages or signature bytes to observe instant tamper detection.
 
-### 🌐 6. X.509 SSL/TLS Certificate Explorer
+### 🌐 7. X.509 SSL/TLS Certificate Explorer
 - **Live Domain Inspector**: Enter domain names (e.g., `google.com`) to inspect real SSL certificates, SANs, serial numbers, and validity periods.
 - **Self-Signed Cert Generator**: Create custom X.509 certificates directly in your browser.
 
-### 🧱 7. Animated Block Cipher Visualizer
+### 🧱 8. Animated Block Cipher Visualizer
 - Step-by-step state matrix viewer showing AES round transformations: **SubBytes**, **ShiftRows**, **MixColumns**, and **AddRoundKey**.
 
-### 🏆 8. Gamified Challenges & Quiz System
-- Real-world cryptography quiz questions categorized by difficulty (*Easy, Medium, Hard*) with instant explanations and score tracking.
+### 🏆 9. Gamified Challenges & Session-Locked Quizzes
+- **Progress-Adaptive Mode**: Randomly serves 10 custom questions tailored to the user's completed labs and overall roadmap progress.
+- **Anti-Hijacking Sign-in**: Unique username registration verified on the scoreboard SQLite database with automated alternative suggestion flags.
+- **Session-Locked Solutions**: Answers must be completed for all 10 scenario questions in the active session before revealing the full cryptographic solutions dashboard.
 
-### 🧭 9. "My Crypto Journey" Progress Tracker Panel
+### 🧭 10. "My Crypto Journey" Progress Tracker Panel
 - **SaaS Dashboard Drawer**: Slide-over panel (desktop) and modal (mobile) featuring:
   - **Animated Circular Progress Gauge**: Displays completion percentage and overall level (*Crypto Beginner* → *Crypto Master*).
-  - **Learning Roadmap**: Step-by-step interactive timeline with checkmarks, glowing indicators, and lock states.
+  - **Learning Roadmap**: Step-by-step interactive timeline with checkmarks, glowing indicators, and lock states (including the new Classical Ciphers Lab).
   - **Skill Badges & Achievements**: Real-time unlock notifications (*Hash Master*, *Encryption Explorer*, etc.).
   - **Cross-Tab Synchronization**: Real-time updates across multiple open browser tabs via `BroadcastChannel` and `storage` events.
 

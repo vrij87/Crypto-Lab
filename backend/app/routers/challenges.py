@@ -92,6 +92,10 @@ def list_challenges(
     else:
         filtered_challenges = challenges
         
+    # Sample exactly 10 questions randomly if we have more than 10
+    if len(filtered_challenges) > 10:
+        filtered_challenges = random.sample(filtered_challenges, 10)
+        
     # Sort by difficulty: Easy -> Medium -> Hard
     difficulty_order = {"easy": 0, "medium": 1, "hard": 2}
     filtered_challenges.sort(key=lambda c: difficulty_order.get(c.difficulty.lower(), 3))

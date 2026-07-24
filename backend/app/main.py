@@ -17,7 +17,11 @@ async def lifespan(app: FastAPI):
     # Seed challenges database if empty
     db = SessionLocal()
     try:
-        if db.query(Challenge).count() == 0:
+        # Auto-update seeder: ensures old databases get upgraded to the full 16 challenges
+        if db.query(Challenge).count() < 16:
+            db.query(Challenge).delete()
+            db.commit()
+
             seed_challenges = [
                 Challenge(
                     title="Identify the Secure Algorithm",
@@ -92,6 +96,136 @@ async def lifespan(app: FastAPI):
                     explanation="Digital signatures prove who wrote the message (authenticity), check that the message hasn't been altered (integrity), and prevent the sender from claiming they didn't send it (non-repudiation).",
                     difficulty="Medium",
                     category="Signature"
+                ),
+                Challenge(
+                    title="Caesar Cipher Shift Decoding",
+                    question="If you encrypt the word 'HAL' using a Caesar Cipher with a shift key of 1, what is the resulting ciphertext?",
+                    options=["IBM", "GZK", "IJM", "JAK"],
+                    correct_option_index=0,
+                    explanation="Shifting the letters H, A, L forward by 1 in the alphabet yields I, B, M. (H+1=I, A+1=B, L+1=M). This was famously referenced as the source of the computer name HAL from 2001: A Space Odyssey relative to IBM.",
+                    difficulty="Easy",
+                    category="Overview"
+                ),
+                Challenge(
+                    title="Vigenère Cipher Characteristics",
+                    question="Why does the Vigenère cipher flatten the frequency analysis distribution of single letters compared to the Caesar cipher?",
+                    options=[
+                        "It uses an asymmetric public/private key pair.",
+                        "It is a polyalphabetic cipher that uses a repeating keyword to apply different shifts to consecutive letters.",
+                        "It uses cryptographically secure random numbers for every letter.",
+                        "It hashes the plaintext before encrypting."
+                    ],
+                    correct_option_index=1,
+                    explanation="Because Vigenère shifts each letter using a different letter of the keyword, a single plaintext letter (like E) maps to multiple different ciphertext letters, smoothing out the frequency peaks.",
+                    difficulty="Medium",
+                    category="Overview"
+                ),
+                Challenge(
+                    title="HMAC Security Properties",
+                    question="What primary security property does an HMAC (Hash-based Message Authentication Code) provide that a standard SHA-256 hash does not?",
+                    options=[
+                        "Confidentiality of the message payload",
+                        "Resistance to quantum computer decryption keys",
+                        "Data integrity and authenticity of the sender via a shared secret key",
+                        "Speed improvement during encryption operations"
+                    ],
+                    correct_option_index=2,
+                    explanation="An HMAC uses a cryptographic hash function in combination with a secret key. This guarantees both that the data has not been modified (integrity) and that the sender knows the secret key (authenticity).",
+                    difficulty="Easy",
+                    category="Hashing"
+                ),
+                Challenge(
+                    title="Length Extension Vulnerability",
+                    question="Which of the following hash constructions is vulnerable to length extension attacks, leading to the creation of SHA-3?",
+                    options=["SHA-256", "SHA-3-256", "BLAKE2", "HMAC-SHA-256"],
+                    correct_option_index=0,
+                    explanation="Hash functions based on the Merkle-Damgård construction (like SHA-256, SHA-512, MD5, and SHA-1) are vulnerable to length extension attacks, where an attacker can compute H(message || extension) without knowing the secret prefix of H(secret || message).",
+                    difficulty="Hard",
+                    category="Hashing"
+                ),
+                Challenge(
+                    title="Role of Pepper in Password Storage",
+                    question="In secure password storage, what is the main architectural difference between a Salt and a Pepper?",
+                    options=[
+                        "Salts are computed via SHA-256; Peppers are computed via bcrypt.",
+                        "Salts are stored in the database next to the password hash; Peppers are stored separately in configuration files or key managers.",
+                        "Salts are public; Peppers are encrypted with asymmetric public keys.",
+                        "Salts protect against brute-force; Peppers protect against dictionary attacks."
+                    ],
+                    correct_option_index=1,
+                    explanation="A salt is unique per user and stored directly in the database. A pepper is a system-wide secret key stored outside the database (e.g., in environment configurations), preventing hashing attacks even if the database is fully leaked.",
+                    difficulty="Medium",
+                    category="Passwords"
+                ),
+                Challenge(
+                    title="Argon2 Memory Hardness",
+                    question="What makes Argon2id highly resistant to GPU/ASIC brute-force attacks compared to legacy SHA-256 based KDFs?",
+                    options=[
+                        "It uses asymmetric prime factorization.",
+                        "It enforces a multi-threaded CPU thread lock.",
+                        "It is a memory-hard function that requires a configurable amount of RAM to compute, making hardware parallelization expensive.",
+                        "It produces variable-length hashes."
+                    ],
+                    correct_option_index=2,
+                    explanation="Argon2id requires a significant amount of memory (RAM) to compute each hash. Creating highly parallel hardware rigs (ASICs/GPUs) with gigabytes of fast memory per core is extremely expensive, which dramatically slows down parallel brute-force attacks.",
+                    difficulty="Hard",
+                    category="Passwords"
+                ),
+                Challenge(
+                    title="AES Galois/Counter Mode (GCM)",
+                    question="What does GCM (Galois/Counter Mode) provide in AES encryption that CBC (Cipher Block Chaining) does not without helper codes?",
+                    options=[
+                        "Slower computation overhead",
+                        "Public key signature exchange",
+                        "Authenticated Encryption (AEAD) proving ciphertext integrity and protecting against bit-flipping attacks",
+                        "Initialization vector randomness"
+                    ],
+                    correct_option_index=2,
+                    explanation="AES-GCM is an AEAD mode. It computes an authentication tag (MAC) alongside the ciphertext. If an attacker alters any bit in the ciphertext during transit, the decryption process fails the tag validation, preventing decryption of tampered payloads.",
+                    difficulty="Medium",
+                    category="Symmetric"
+                ),
+                Challenge(
+                    title="Forward Secrecy in Key Exchange",
+                    question="In TLS/SSL handshake protocols, what does Perfect Forward Secrecy (PFS) guarantee?",
+                    options=[
+                        "The server private key is never shared with the CDN.",
+                        "Compromise of the server's long-term private key does not compromise past session keys generated during handshakes.",
+                        "The client can decrypt all future requests.",
+                        "The certificate is signed by a root CA."
+                    ],
+                    correct_option_index=1,
+                    explanation="Perfect Forward Secrecy ensures that temporary/ephemeral session keys are generated dynamically per handshake (e.g., using Ephemeral Diffie-Hellman). Even if an attacker steals the server's long-term private key later, they cannot decrypt recorded historical traffic.",
+                    difficulty="Hard",
+                    category="Asymmetric"
+                ),
+                Challenge(
+                    title="ECDSA vs. RSA Signatures",
+                    question="What is the primary advantage of ECDSA (Elliptic Curve Digital Signature Algorithm) over standard RSA signatures at equivalent security levels?",
+                    options=[
+                        "ECDSA is older and more widely tested.",
+                        "ECDSA signatures and key sizes are much smaller, leading to lower bandwidth and memory overhead.",
+                        "ECDSA does not require a hash function.",
+                        "ECDSA is immune to quantum attacks."
+                    ],
+                    correct_option_index=1,
+                    explanation="ECDSA achieves the same cryptographic strength as RSA with significantly smaller keys (e.g., 256-bit ECC matches 3072-bit RSA) and smaller signature sizes, reducing traffic overhead for handshakes.",
+                    difficulty="Medium",
+                    category="Signature"
+                ),
+                Challenge(
+                    title="Public Key Certificate Trust Anchor",
+                    question="How does a web browser verify that an X.509 certificate presented by a domain (e.g., google.com) is authentic and trustworthy?",
+                    options=[
+                        "It runs a DNS lookup validation check on 127.0.0.1.",
+                        "It decrypts the entire webpage using the server's public key.",
+                        "It verifies the digital signature chain of the certificate back to a trusted Root Certificate Authority (CA) pre-installed in the browser's store.",
+                        "It queries the Supabase database."
+                    ],
+                    correct_option_index=2,
+                    explanation="Browsers and operating systems come pre-installed with a list of trusted Root Certificate Authorities. The browser follows the certificate signature chain (Server Cert -> Intermediate CA -> Root CA) and verifies each signature using the CA's public key.",
+                    difficulty="Hard",
+                    category="Certificates"
                 )
             ]
             db.add_all(seed_challenges)
