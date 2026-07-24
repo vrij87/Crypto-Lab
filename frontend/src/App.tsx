@@ -23,6 +23,7 @@ import Challenges from './pages/Challenges';
 import DocPage from './pages/DocPage';
 import About from './pages/About';
 import AuthPage from './pages/AuthPage';
+import ClassicalLab from './pages/ClassicalLab';
 
 const App: React.FC = () => {
   return (
@@ -44,6 +45,7 @@ const App: React.FC = () => {
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/labs" element={<Labs />} />
+                <Route path="/labs/classical" element={<ClassicalLab />} />
                 <Route path="/labs/hashing" element={<HashingLab />} />
                 <Route path="/labs/passwords" element={<PasswordLab />} />
                 <Route path="/labs/symmetric" element={<SymmetricLab />} />

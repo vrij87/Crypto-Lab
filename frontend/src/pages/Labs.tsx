@@ -13,6 +13,17 @@ const Labs: React.FC = () => {
 
   const labs = [
     {
+      id: 'classical',
+      title: 'Historical & Classical Ciphers',
+      description: 'Explore cryptographic history. Experiment with shift patterns like the Caesar Cipher, Vigenère keywords, and ROT13. Analyze letter frequencies in ciphertext.',
+      path: '/labs/classical',
+      icon: Compass,
+      color: 'text-amber-400 border-amber-500/20 bg-amber-950/10',
+      difficulty: 'Easy',
+      algorithms: ['Caesar Cipher', 'Vigenère', 'ROT13', 'Frequency Analysis'],
+      status: 'Ready'
+    },
+    {
       id: 'hashing',
       title: 'Hashing Laboratory',
       description: 'Explore cryptographic hash functions, compare digest sizes, and benchmark hashing speeds. Observe the Avalanche Effect in real-time.',

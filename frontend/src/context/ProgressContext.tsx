@@ -187,7 +187,7 @@ const DEFAULT_PROGRESS: ProgressState = {
   overallPercentage: 0,
   level: 'Crypto Beginner',
   labsCompletedCount: 0,
-  totalLabs: 8,
+  totalLabs: 9,
   currentGoal: {
     title: 'Explore Hashing Laboratory',
     labName: 'Hashing Laboratory',
@@ -204,6 +204,15 @@ const DEFAULT_PROGRESS: ProgressState = {
       status: 'in_progress',
       estTime: '10 min',
       description: 'Foundational concepts, ciphers, and security principles.',
+    },
+    {
+      id: 'classical',
+      name: 'Classical Ciphers Lab',
+      category: 'History & Theory',
+      path: '/labs/classical',
+      status: 'in_progress',
+      estTime: '15 min',
+      description: 'Caesar shift sliders, Vigenère keywords, and Frequency Analysis visualizers.',
     },
     {
       id: 'hashing',
@@ -239,7 +248,7 @@ const DEFAULT_PROGRESS: ProgressState = {
       path: '/labs/asymmetric',
       status: 'locked',
       estTime: '30 min',
-      description: 'RSA 2048/4096 & ECC SECP256k1 key generation and encryption.',
+      description: 'RSA 2048/4596 & ECC SECP256k1 key generation and encryption.',
     },
     {
       id: 'signatures',
@@ -270,6 +279,7 @@ const DEFAULT_PROGRESS: ProgressState = {
     },
   ],
   labProgress: {
+    classical: 0,
     hashing: 0,
     passwords: 0,
     symmetric: 0,
