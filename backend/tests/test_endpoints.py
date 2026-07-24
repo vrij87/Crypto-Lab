@@ -232,3 +232,35 @@ def test_unique_usernames(client):
         headers={"X-Scoreboard-Token": "badtoken123"}
     )
     assert submit_conflict.status_code == 409
+
+def test_adaptive_challenges(client):
+    # 1. Retrieve full challenge list and check difficulty sorting order (Easy -> Medium -> Hard)
+    full_resp = client.get("/api/challenges/list?overall_progress=50")
+    assert full_resp.status_code == 200
+    full_list = full_resp.json()
+    assert len(full_list) > 0
+    
+    diff_order = {"easy": 0, "medium": 1, "hard": 2}
+    last_difficulty_rank = 0
+    for chal in full_list:
+        rank = diff_order.get(chal["difficulty"].lower(), 3)
+        assert rank >= last_difficulty_rank, f"Difficulty order violation: {chal['difficulty']} followed a harder level"
+        last_difficulty_rank = rank
+        
+    # 2. Retrieve filtered challenge list (overall_progress < 20 and only 'hashing' completed)
+    filtered_resp = client.get("/api/challenges/list?overall_progress=10&completed_labs=hashing")
+    assert filtered_resp.status_code == 200
+    filtered_list = filtered_resp.json()
+    assert len(filtered_list) > 0
+    
+    # Verify categories are restricted to Hashing and Overview
+    for chal in filtered_list:
+        assert chal["category"] in ("Hashing", "Overview")
+        
+    # 3. Retrieve filtered challenge list with multiple completed labs
+    multi_filtered_resp = client.get("/api/challenges/list?overall_progress=15&completed_labs=hashing,passwords")
+    assert multi_filtered_resp.status_code == 200
+    multi_filtered_list = multi_filtered_resp.json()
+    assert len(multi_filtered_list) > 0
+    for chal in multi_filtered_list:
+        assert chal["category"] in ("Hashing", "Passwords", "Overview")

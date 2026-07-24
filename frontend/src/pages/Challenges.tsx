@@ -13,7 +13,7 @@ interface Challenge {
 }
 
 const Challenges: React.FC = () => {
-  const { markLabVisited, updateLabProgress } = useProgress();
+  const { markLabVisited, updateLabProgress, progress } = useProgress();
   const [username, setUsername] = useState(() => localStorage.getItem('cryptolab_username') || '');
   const [tempUsername, setTempUsername] = useState('');
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -28,12 +28,11 @@ const Challenges: React.FC = () => {
   // Selection/Submission States
   const [activeChal, setActiveChal] = useState<Challenge | null>(null);
   const [selectedOpt, setSelectedOpt] = useState<number | null>(null);
-  const [result, setResult] = useState<{ correct: boolean; explanation: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [userAnswers, setUserAnswers] = useState<Record<number, { selectedIndex: number; correct: boolean; explanation: string }>>({});
 
   useEffect(() => {
     markLabVisited('challenges', 'Crypto Challenges', '/challenges');
-    fetchChallenges();
   }, []);
 
   useEffect(() => {
@@ -43,13 +42,36 @@ const Challenges: React.FC = () => {
     }
   }, [username]);
 
+  useEffect(() => {
+    if (username) {
+      fetchChallenges();
+    }
+  }, [progress?.overallPercentage, JSON.stringify(progress?.labProgress), username]);
+
   const fetchChallenges = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/challenges/list');
+      const completedLabsList = Object.entries(progress?.labProgress || {})
+        .filter(([_, percent]) => percent > 0)
+        .map(([labId]) => labId)
+        .join(',');
+        
+      const overallPercent = progress?.overallPercentage || 0;
+
+      const response = await api.get('/challenges/list', {
+        params: {
+          overall_progress: overallPercent,
+          completed_labs: completedLabsList
+        }
+      });
       setChallenges(response.data);
       if (response.data.length > 0) {
-        setActiveChal(response.data[0]);
+        setActiveChal((prev) => {
+          if (prev && response.data.some((c: Challenge) => c.id === prev.id)) {
+            return prev;
+          }
+          return response.data[0];
+        });
       }
     } catch (e) {
       console.error(e);
@@ -94,6 +116,7 @@ const Challenges: React.FC = () => {
       localStorage.setItem('cryptolab_username', nameToRegister);
       setUserScore(response.data.score);
       setCompletedList(response.data.completed_challenges || []);
+      setUserAnswers({}); // Clear past session answers on new sign-in
     } catch (err: any) {
       if (err.response && err.response.status === 409) {
         const detail = err.response.data.detail;
@@ -122,6 +145,7 @@ const Challenges: React.FC = () => {
     setTempUsername('');
     setUsernameError(null);
     setSuggestions([]);
+    setUserAnswers({});
   };
 
   const handleSubmitAnswer = async () => {
@@ -133,17 +157,42 @@ const Challenges: React.FC = () => {
         challenge_id: activeChal.id,
         answer_index: selectedOpt
       });
-      setResult({
-        correct: response.data.correct,
-        explanation: response.data.explanation
-      });
+      
+      const correct = response.data.correct;
+      setUserAnswers(prev => ({
+        ...prev,
+        [activeChal.id]: {
+          selectedIndex: selectedOpt,
+          correct: correct,
+          explanation: response.data.explanation
+        }
+      }));
+
+      if (correct) {
+        setCompletedList(prev => [...prev, activeChal.id]);
+      }
+      
       setUserScore(response.data.score);
       const doneList = response.data.completed_challenges || [];
-      setCompletedList(doneList);
-      if (response.data.correct) {
+      
+      if (correct) {
         const percent = Math.min(100, Math.round((doneList.length / (challenges.length || 1)) * 100));
         updateLabProgress('challenges', Math.max(20, percent));
       }
+      
+      // Auto-advance to the next unanswered/unattempted question after a brief transition delay
+      setTimeout(() => {
+        const currentIndex = challenges.findIndex(c => c.id === activeChal.id);
+        const nextUnanswered = 
+          challenges.slice(currentIndex + 1).find(c => !completedList.includes(c.id) && !userAnswers[c.id]) ||
+          challenges.slice(0, currentIndex).find(c => !completedList.includes(c.id) && !userAnswers[c.id]);
+          
+        if (nextUnanswered) {
+          setActiveChal(nextUnanswered);
+          setSelectedOpt(null);
+        }
+      }, 600);
+      
     } catch (e: any) {
       console.error(e);
       if (e.response && e.response.status === 409) {
@@ -161,9 +210,15 @@ const Challenges: React.FC = () => {
 
   const selectChallenge = (chal: Challenge) => {
     setActiveChal(chal);
-    setSelectedOpt(null);
-    setResult(null);
+    const attempted = userAnswers[chal.id];
+    if (attempted) {
+      setSelectedOpt(attempted.selectedIndex);
+    } else {
+      setSelectedOpt(null);
+    }
   };
+
+  const isQuizFinished = challenges.length > 0 && challenges.every(c => completedList.includes(c.id) || userAnswers[c.id] !== undefined);
 
   const getDifficultyColor = (diff: string) => {
     switch (diff.toLowerCase()) {
@@ -303,7 +358,94 @@ const Challenges: React.FC = () => {
 
           {/* Right Column: Quiz presentation card (Cols 8) */}
           <div className="lg:col-span-8">
-            {activeChal ? (
+            {isQuizFinished ? (
+              <div className="glass-panel p-6 space-y-6">
+                <div className="border-b border-gray-800 pb-4">
+                  <span className="text-[10px] font-mono text-rose-450 uppercase tracking-widest text-glow">Assessment Completed</span>
+                  <h2 className="text-xl font-bold text-white mt-0.5">Quiz Summary & Solutions</h2>
+                </div>
+
+                {/* Score breakdown metrics */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="bg-cyber-darker p-3 rounded-lg border border-gray-800 text-center">
+                    <span className="text-[10px] text-gray-500 font-mono block">ATTEMPTED</span>
+                    <span className="text-lg font-bold text-white">{challenges.length} / {challenges.length}</span>
+                  </div>
+                  <div className="bg-cyber-darker p-3 rounded-lg border border-gray-800 text-center">
+                    <span className="text-[10px] text-gray-500 font-mono block">CORRECT</span>
+                    <span className="text-lg font-bold text-emerald-400">
+                      {challenges.filter(c => userAnswers[c.id]?.correct || (completedList.includes(c.id) && !userAnswers[c.id])).length}
+                    </span>
+                  </div>
+                  <div className="bg-cyber-darker p-3 rounded-lg border border-gray-800 text-center">
+                    <span className="text-[10px] text-gray-500 font-mono block">SUCCESS RATE</span>
+                    <span className="text-lg font-bold text-rose-400">
+                      {Math.round(
+                        (challenges.filter(c => userAnswers[c.id]?.correct || (completedList.includes(c.id) && !userAnswers[c.id])).length /
+                          (challenges.length || 1)) *
+                          100
+                      )}%
+                    </span>
+                  </div>
+                  <div className="bg-cyber-darker p-3 rounded-lg border border-gray-800 text-center">
+                    <span className="text-[10px] text-gray-500 font-mono block">YOUR SCORE</span>
+                    <span className="text-lg font-bold text-white">{userScore} pts</span>
+                  </div>
+                </div>
+
+                {/* Solutions List */}
+                <div className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
+                  {challenges.map((chal, index) => {
+                    const ans = userAnswers[chal.id];
+                    const isCorrect = ans ? ans.correct : completedList.includes(chal.id);
+                    const explanation = ans ? ans.explanation : 'You have already completed this exercise. Great job!';
+                    const chosenText = ans ? chal.options[ans.selectedIndex] : 'Previously Solved';
+
+                    return (
+                      <div key={chal.id} className="p-4 bg-cyber-darker/50 border border-gray-800 rounded-lg space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <span className="text-[9px] font-mono text-gray-500 uppercase">Question {index + 1} • {chal.category}</span>
+                            <h4 className="text-xs font-bold text-white leading-tight">{chal.question}</h4>
+                          </div>
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold ${
+                            isCorrect 
+                              ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40' 
+                              : 'bg-rose-950/40 text-rose-400 border border-rose-900/40'
+                          }`}>
+                            {isCorrect ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> : <AlertCircle className="w-3 h-3 text-rose-400" />}
+                            {isCorrect ? 'Correct' : 'Incorrect'}
+                          </span>
+                        </div>
+
+                        <div className="text-[11px] space-y-1 text-gray-400 bg-cyber-darker p-2.5 rounded border border-gray-850">
+                          <p><span className="text-gray-500 font-mono">Your Answer:</span> <span className={isCorrect ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>{chosenText}</span></p>
+                        </div>
+
+                        <div className="text-[11px] leading-relaxed text-gray-400 border-l-2 border-rose-500/50 pl-3">
+                          <p className="font-semibold text-rose-400 font-mono text-[9px] uppercase tracking-wider mb-0.5">Solution Explanation</p>
+                          <p>{explanation}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Retake button */}
+                <button
+                  onClick={() => {
+                    setUserAnswers({});
+                    setSelectedOpt(null);
+                    if (challenges.length > 0) {
+                      setActiveChal(challenges[0]);
+                    }
+                  }}
+                  className="w-full py-2.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all cursor-pointer"
+                >
+                  Retake Quiz
+                </button>
+              </div>
+            ) : activeChal ? (
               <div className="glass-panel p-6 space-y-6">
                 
                 {/* Title info */}
@@ -322,7 +464,7 @@ const Challenges: React.FC = () => {
                 {/* Option radios */}
                 <div className="space-y-3">
                   {activeChal.options.map((opt, idx) => {
-                    const isCompleted = completedList.includes(activeChal.id);
+                    const isCompleted = completedList.includes(activeChal.id) || userAnswers[activeChal.id] !== undefined;
                     return (
                       <label
                         key={idx}
@@ -339,10 +481,9 @@ const Challenges: React.FC = () => {
                           onChange={() => {
                             if (!isCompleted) {
                               setSelectedOpt(idx);
-                              setResult(null);
                             }
                           }}
-                          className="mt-0.5 text-rose-600 focus:ring-rose-500 w-4 h-4 bg-gray-900 border-gray-700"
+                          className="mt-0.5 text-rose-600 focus:ring-rose-500 w-4 h-4 bg-gray-900 border-gray-700 font-mono"
                         />
                         <span>{opt}</span>
                       </label>
@@ -351,35 +492,25 @@ const Challenges: React.FC = () => {
                 </div>
 
                 {/* Submit button */}
-                {!completedList.includes(activeChal.id) && (
+                {(!completedList.includes(activeChal.id) && userAnswers[activeChal.id] === undefined) && (
                   <button
                     onClick={handleSubmitAnswer}
                     disabled={selectedOpt === null || submitting}
-                    className="w-full py-2.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all disabled:opacity-50"
+                    className="w-full py-2.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
                   >
                     {submitting ? 'Evaluating...' : 'Submit Answer'}
                   </button>
                 )}
 
-                {/* Explanation block */}
-                {(result || completedList.includes(activeChal.id)) && (
+                {/* Local feedback (optional, or just informational if they solved it in a previous session) */}
+                {(completedList.includes(activeChal.id) && userAnswers[activeChal.id] === undefined) && (
                   <div className="p-4 bg-cyber-darker border border-gray-800 rounded-lg text-xs leading-relaxed space-y-2">
-                    <div className="flex items-center space-x-2">
-                      {result?.correct || completedList.includes(activeChal.id) ? (
-                        <div className="flex items-center text-emerald-400 font-bold space-x-1">
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Correct!</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center text-rose-450 font-bold space-x-1">
-                          <AlertCircle className="w-4 h-4" />
-                          <span>Incorrect answer</span>
-                        </div>
-                      )}
+                    <div className="flex items-center text-emerald-400 font-bold space-x-1">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Solved in a previous session</span>
                     </div>
-                    
                     <p className="text-gray-400">
-                      {result?.explanation || 'You have already completed this exercise. Great job!'}
+                      You have already completed this exercise. Great job! Check the final Quiz Summary to view the explanation.
                     </p>
                   </div>
                 )}

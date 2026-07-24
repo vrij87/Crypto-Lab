@@ -49,10 +49,54 @@ def generate_alternative_usernames(username: str, db: Session) -> List[str]:
     return suggestions
 
 @router.get("/list", response_model=List[ChallengeSchema])
-def list_challenges(db: Session = Depends(get_db)):
-    """Returns list of available cryptography quiz challenges."""
+def list_challenges(
+    overall_progress: int = 0,
+    completed_labs: str | None = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Returns list of available cryptography quiz challenges.
+    Filters/adapts challenges based on what the user has learned:
+    - If overall_progress is under 20%, only show challenges from categories matching labs the user has unlocked/started.
+    - Sorts challenges from Easy -> Medium -> Hard.
+    """
     challenges = db.query(Challenge).all()
-    return challenges
+    
+    # Parse completed labs list
+    unlocked_categories = {"Overview"} # Baseline fundamental category is always unlocked
+    if completed_labs:
+        labs = [l.strip().lower() for l in completed_labs.split(",") if l.strip()]
+        for lab in labs:
+            if lab == "hashing":
+                unlocked_categories.add("Hashing")
+            elif lab == "passwords":
+                unlocked_categories.add("Passwords")
+            elif lab == "symmetric":
+                unlocked_categories.add("Symmetric")
+            elif lab == "asymmetric":
+                unlocked_categories.add("Asymmetric")
+            elif lab == "signatures":
+                unlocked_categories.add("Signature")
+            elif lab == "certificates":
+                unlocked_categories.add("Certificates")
+                
+    # If overall progress is less than 20%, filter challenges to only show unlocked categories
+    if overall_progress < 20:
+        filtered_challenges = [
+            c for c in challenges 
+            if c.category in unlocked_categories
+        ]
+        # Fallback if no labs are unlocked yet (show Hashing as default learning path start)
+        if not filtered_challenges:
+            filtered_challenges = [c for c in challenges if c.category in ("Hashing", "Overview")]
+    else:
+        filtered_challenges = challenges
+        
+    # Sort by difficulty: Easy -> Medium -> Hard
+    difficulty_order = {"easy": 0, "medium": 1, "hard": 2}
+    filtered_challenges.sort(key=lambda c: difficulty_order.get(c.difficulty.lower(), 3))
+    
+    return filtered_challenges
 
 @router.get("/status/{username}", response_model=UserScoreResponse)
 def get_user_status(
