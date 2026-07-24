@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  Hash, Lock, Key, Shield, CheckSquare, Globe, BookOpen, Terminal, Compass
+  Hash, Lock, Key, Shield, CheckSquare, Globe, BookOpen, Terminal, Compass, Cpu
 } from 'lucide-react';
 import { useProgress } from '../context/ProgressContext';
 import { useAuth } from '../context/AuthContext';
@@ -65,6 +65,17 @@ const Labs: React.FC = () => {
       color: 'text-indigo-400 border-indigo-500/20 bg-indigo-950/10',
       difficulty: 'Hard',
       algorithms: ['RSA-2048', 'RSA-4096', 'Key Exchange'],
+      status: 'Ready'
+    },
+    {
+      id: 'rsa-sandbox',
+      title: 'RSA Math Sandbox',
+      description: 'Explore the math behind RSA. Choose primes, calculate modulus N & totient phi, find coprime public exponents e, and compute private key d.',
+      path: '/labs/rsa-sandbox',
+      icon: Cpu,
+      color: 'text-purple-400 border-purple-500/20 bg-purple-950/10',
+      difficulty: 'Easy',
+      algorithms: ['Prime Factors', 'Euler Totient', 'Modular Inverse', 'Modular Power'],
       status: 'Ready'
     },
     {

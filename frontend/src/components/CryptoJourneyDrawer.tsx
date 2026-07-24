@@ -398,12 +398,14 @@ const CryptoJourneyDrawer: React.FC = () => {
 
                 <div className="bg-[#111827] border border-gray-800/80 rounded-2xl p-4 space-y-4">
                   {[
-                    { id: 'hashing', name: 'Hashing Lab', percent: progress.labProgress.hashing || 100, path: '/labs/hashing' },
-                    { id: 'passwords', name: 'Password Security Lab', percent: progress.labProgress.passwords || 100, path: '/labs/passwords' },
-                    { id: 'symmetric', name: 'AES Encryption Lab', percent: progress.labProgress.symmetric || 100, path: '/labs/symmetric' },
-                    { id: 'asymmetric', name: 'RSA & ECC Lab', percent: progress.labProgress.asymmetric || 65, path: '/labs/asymmetric' },
-                    { id: 'signatures', name: 'Digital Signature Lab', percent: progress.labProgress.signatures || 25, path: '/labs/signatures' },
-                    { id: 'certificates', name: 'Certificate Explorer', percent: progress.labProgress.certificates || 10, path: '/labs/certificates' },
+                    { id: 'classical', name: 'Classical Ciphers Lab', percent: progress.labProgress.classical || 0, path: '/labs/classical' },
+                    { id: 'hashing', name: 'Hashing Lab', percent: progress.labProgress.hashing || 0, path: '/labs/hashing' },
+                    { id: 'passwords', name: 'Password Security Lab', percent: progress.labProgress.passwords || 0, path: '/labs/passwords' },
+                    { id: 'symmetric', name: 'AES Encryption Lab', percent: progress.labProgress.symmetric || 0, path: '/labs/symmetric' },
+                    { id: 'asymmetric', name: 'RSA & ECC Lab', percent: progress.labProgress.asymmetric || 0, path: '/labs/asymmetric' },
+                    { id: 'rsa-sandbox', name: 'RSA Math Sandbox', percent: progress.labProgress.rsaSandbox || 0, path: '/labs/rsa-sandbox' },
+                    { id: 'signatures', name: 'Digital Signature Lab', percent: progress.labProgress.signatures || 0, path: '/labs/signatures' },
+                    { id: 'certificates', name: 'Certificate Explorer', percent: progress.labProgress.certificates || 0, path: '/labs/certificates' },
                   ].map((lab) => (
                     <div
                       key={lab.id}

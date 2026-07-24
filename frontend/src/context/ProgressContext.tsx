@@ -187,7 +187,7 @@ const DEFAULT_PROGRESS: ProgressState = {
   overallPercentage: 0,
   level: 'Crypto Beginner',
   labsCompletedCount: 0,
-  totalLabs: 9,
+  totalLabs: 10,
   currentGoal: {
     title: 'Explore Hashing Laboratory',
     labName: 'Hashing Laboratory',
@@ -251,6 +251,15 @@ const DEFAULT_PROGRESS: ProgressState = {
       description: 'RSA 2048/4596 & ECC SECP256k1 key generation and encryption.',
     },
     {
+      id: 'rsa-sandbox',
+      name: 'RSA Math Sandbox',
+      category: 'Asymmetric Math',
+      path: '/labs/rsa-sandbox',
+      status: 'locked',
+      estTime: '15 min',
+      description: 'Explore prime multiplication, Euler totients, and modular arithmetic step-by-step.',
+    },
+    {
       id: 'signatures',
       name: 'Digital Signature Lab',
       category: 'Signatures',
@@ -284,6 +293,7 @@ const DEFAULT_PROGRESS: ProgressState = {
     passwords: 0,
     symmetric: 0,
     asymmetric: 0,
+    rsaSandbox: 0,
     signatures: 0,
     certificates: 0,
     explorer: 0,

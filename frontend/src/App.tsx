@@ -24,6 +24,7 @@ import DocPage from './pages/DocPage';
 import About from './pages/About';
 import AuthPage from './pages/AuthPage';
 import ClassicalLab from './pages/ClassicalLab';
+import RSASandbox from './pages/RSASandbox';
 
 const App: React.FC = () => {
   return (
@@ -50,6 +51,7 @@ const App: React.FC = () => {
                 <Route path="/labs/passwords" element={<PasswordLab />} />
                 <Route path="/labs/symmetric" element={<SymmetricLab />} />
                 <Route path="/labs/asymmetric" element={<AsymmetricLab />} />
+                <Route path="/labs/rsa-sandbox" element={<RSASandbox />} />
                 <Route path="/labs/signatures" element={<SignatureLab />} />
                 <Route path="/labs/certificates" element={<CertificateLab />} />
                 <Route path="/explorer" element={<Explorer />} />
