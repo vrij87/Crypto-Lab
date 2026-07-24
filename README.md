@@ -77,6 +77,13 @@ Instead of reading static equations, users can interactively manipulate ciphers,
   - **Skill Badges & Achievements**: Real-time unlock notifications (*Hash Master*, *Encryption Explorer*, etc.).
   - **Cross-Tab Synchronization**: Real-time updates across multiple open browser tabs via `BroadcastChannel` and `storage` events.
 
+### 🎨 11. Custom Learning Additions & Educational Sandboxes
+- **Interactive Ready-to-Use Code Recipes**: Found in the **Hashing**, **Symmetric**, **Asymmetric**, and **RSA Sandbox** labs. Dynamically outputs copy-pasteable **Python (cryptography)** and **Node.js (crypto)** scripts that use your active parameters (keys, plaintexts, and IVs) in real-time.
+- **Diffie-Hellman Color-Mixing Sandbox**: Visual paint-mixing tab in the **RSA Sandbox** demonstrating the public/private key-exchange. Alice & Bob combine their private selections with a public yellow base, swap mixtures over an insecure channel, and calculate the exact same final shared secret color.
+- **Byte-Flipping Integrity Playground**: Interactive grid in the **Symmetric Lab** displaying ciphertext bytes. Clicking a byte corrupts it in glowing red; decrypting demonstrates why **AES-GCM** tags reject tampered payloads while **AES-CBC** silently decrypts corrupted garbage text.
+- **Cyber Agent Mission Tracker**: Interactive onboarding mission tracker card inside the **Classical Lab** challenging players to decode Caesar shifted text to unlock scoreboard coordinates.
+- **Beginner Course Interactive Widgets**: Five real-time educational sandboxes directly inside the **Beginner Cryptography Knowledge Center** modal steps (hashing digests, XOR key encryption, RSA modular exponents, signature validation, and live X.509 certificates). Includes detailed algorithm glossary definitions and small-prime security analysis.
+
 ---
 
 ## 🛠️ Technology Stack
