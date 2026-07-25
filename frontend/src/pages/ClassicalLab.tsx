@@ -37,7 +37,7 @@ const ClassicalLab: React.FC = () => {
   }, [missionInput]);
 
   // Quest/Tutorial Mode States
-  const [isQuestMode, setIsQuestMode] = useState(false);
+  const [isQuestMode, setIsQuestMode] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] || '').get('quest') === 'true');
   const [questStep, setQuestStep] = useState(1);
   const [questFrequencyAnswer, setQuestFrequencyAnswer] = useState<number | null>(null);
   const [showQuestSuccessModal, setShowQuestSuccessModal] = useState(false);

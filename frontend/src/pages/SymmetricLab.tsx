@@ -41,7 +41,7 @@ const SymmetricLab: React.FC = () => {
   const [tamperLoading, setTamperLoading] = useState(false);
 
   // Reset bit-flipping when encryption results change
-  const [isQuestMode, setIsQuestMode] = useState(false);
+  const [isQuestMode, setIsQuestMode] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] || '').get('quest') === 'true');
   const [questStep, setQuestStep] = useState(1);
   const [showQuestSuccessModal, setShowQuestSuccessModal] = useState(false);
 

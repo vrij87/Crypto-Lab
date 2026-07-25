@@ -220,14 +220,25 @@ const Labs: React.FC = () => {
               </div>
             </div>
 
-            <div className="border-t border-gray-800/80 pt-4 flex items-center justify-between">
+            <div className="border-t border-gray-800/80 pt-4 flex flex-wrap gap-2 items-center justify-between">
               <span className="text-xs text-gray-500 font-mono">LAB-{i + 1}</span>
-              <Link
-                to={lab.path}
-                className="inline-flex items-center px-4 py-2 rounded bg-gray-800 hover:bg-cyan-950/30 border border-gray-700 hover:border-cyan-500/30 text-sm font-medium text-white hover:text-cyan-400 transition-all"
-              >
-                Open Lab
-              </Link>
+              <div className="flex gap-2">
+                {lab.id !== 'explorer' && lab.id !== 'challenges' && (
+                  <Link
+                    to={`${lab.path}?quest=true`}
+                    className="inline-flex items-center px-3 py-1.5 rounded bg-blue-950/40 hover:bg-blue-900/60 border border-blue-500/30 hover:border-blue-400 text-xs font-mono font-bold uppercase tracking-wider text-blue-300 hover:text-white transition-all gap-1.5 shadow-[0_0_10px_rgba(59,130,246,0.1)] hover:shadow-[0_0_15px_rgba(59,130,246,0.25)] cursor-pointer"
+                  >
+                    <Compass className="w-3.5 h-3.5" />
+                    Quest
+                  </Link>
+                )}
+                <Link
+                  to={lab.path}
+                  className="inline-flex items-center px-4 py-1.5 rounded bg-gray-800 hover:bg-cyan-950/30 border border-gray-700 hover:border-cyan-500/30 text-xs font-semibold text-white hover:text-cyan-400 transition-all cursor-pointer"
+                >
+                  Open Lab
+                </Link>
+              </div>
             </div>
           </motion.div>
         ))}

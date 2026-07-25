@@ -79,7 +79,7 @@ const CertificateLab: React.FC = () => {
   const [packetFlowing, setPacketFlowing] = useState(false);
 
   // Quest/Tutorial Mode States
-  const [isQuestMode, setIsQuestMode] = useState(false);
+  const [isQuestMode, setIsQuestMode] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] || '').get('quest') === 'true');
   const [questStep, setQuestStep] = useState(1);
   const [showQuestSuccessModal, setShowQuestSuccessModal] = useState(false);
 

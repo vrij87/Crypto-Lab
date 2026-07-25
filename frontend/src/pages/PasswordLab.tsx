@@ -42,7 +42,7 @@ const PasswordLab: React.FC = () => {
   const [useSalt, setUseSalt] = useState(false);
 
   // Quest/Tutorial Mode States
-  const [isQuestMode, setIsQuestMode] = useState(false);
+  const [isQuestMode, setIsQuestMode] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] || '').get('quest') === 'true');
   const [questStep, setQuestStep] = useState(1);
   const [questPepperAnswer, setQuestPepperAnswer] = useState<'salt' | 'pepper' | 'hash' | null>(null);
   const [showQuestSuccessModal, setShowQuestSuccessModal] = useState(false);
