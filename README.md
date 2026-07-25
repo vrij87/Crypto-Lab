@@ -85,6 +85,14 @@ Instead of reading static equations, users can interactively manipulate ciphers,
 - **Byte-Flipping Integrity Playground**: Interactive grid in the **Symmetric Lab** displaying ciphertext bytes. Clicking a byte corrupts it in glowing red; decrypting demonstrates why **AES-GCM** tags reject tampered payloads while **AES-CBC** silently decrypts corrupted garbage text.
 - **Cyber Agent Mission Tracker**: Interactive onboarding mission tracker card inside the **Classical Lab** challenging players to decode Caesar shifted text to unlock scoreboard coordinates.
 - **Beginner Course Interactive Widgets**: Five real-time educational sandboxes directly inside the **Beginner Cryptography Knowledge Center** modal steps (hashing digests, XOR key encryption, RSA modular exponents, signature validation, and live X.509 certificates). Includes detailed algorithm glossary definitions and small-prime security analysis.
+- **🎬 Interactive Cartoon Animations Playground**: A dedicated visual metaphor dashboard in every lab demonstrating cryptographic concepts:
+  - **Classical Lab (Caesar Shift Cylinder)**: Concentric sliding cylinders showing alignment shifting in real-time.
+  - **Symmetric Lab (Shared Key Suitcase)**: Drag-and-drop lockbox demonstrating encrypting/decrypting using a single shared key asset.
+  - **Asymmetric Lab (Mailbox Analogy)**: Drag envelope containing letters into public slots to encrypt and open using Bob's private gold key.
+  - **Hashing Lab (Cryptographic Blender)**: Throw ingredients inside a mathematical food blender and blend them to generate smoothie fluid colors mapped to output hashes.
+  - **Password Security Lab (KDF Vault Door)**: Reinforce vault door barricades (wood, iron, steel, titanium, blast safe) against brute force bots based on bcrypt/Argon2id cost parameters.
+  - **Digital Signatures Lab (Notary Wax Seal)**: Stamp contract agreements with Bob's monogram wax seal; editing text shatters the seal instantly.
+  - **Certificates Lab (Passport Control Gate)**: Domain validation, date validity, and CA root trust chain checks structured as a border passport agent control booth.
 
 ---
 
