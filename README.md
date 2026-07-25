@@ -78,6 +78,8 @@ Instead of reading static equations, users can interactively manipulate ciphers,
   - **Cross-Tab Synchronization**: Real-time updates across multiple open browser tabs via `BroadcastChannel` and `storage` events.
 
 ### 🎨 11. Custom Learning Additions & Educational Sandboxes
+- **Direct Guided Quest Launchers**: Start ciphers and laboratories directly in Quest Mode with step-by-step instructions and verified completion conditions from the Laboratories selection panel.
+- **RSA Math Sandbox Guided Quest**: A brand new guided quest step-by-step tutorial in the RSA Math Sandbox that verifies prime selection math parameters ($p, q, e$) and guides users through the Diffie-Hellman color-mixing sandbox.
 - **Interactive Ready-to-Use Code Recipes**: Found in the **Hashing**, **Symmetric**, **Asymmetric**, and **RSA Sandbox** labs. Dynamically outputs copy-pasteable **Python (cryptography)** and **Node.js (crypto)** scripts that use your active parameters (keys, plaintexts, and IVs) in real-time.
 - **Diffie-Hellman Color-Mixing Sandbox**: Visual paint-mixing tab in the **RSA Sandbox** demonstrating the public/private key-exchange. Alice & Bob combine their private selections with a public yellow base, swap mixtures over an insecure channel, and calculate the exact same final shared secret color.
 - **Byte-Flipping Integrity Playground**: Interactive grid in the **Symmetric Lab** displaying ciphertext bytes. Clicking a byte corrupts it in glowing red; decrypting demonstrates why **AES-GCM** tags reject tampered payloads while **AES-CBC** silently decrypts corrupted garbage text.
