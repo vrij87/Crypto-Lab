@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, Key, Lock, Unlock, Copy, Check, RefreshCw, Info, Code } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Shield, Key, Lock, Unlock, Copy, Check, RefreshCw, Info, Code, Compass, CheckCircle2 } from 'lucide-react';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
@@ -45,6 +45,43 @@ const AsymmetricLab: React.FC = () => {
   // Code Recipes states
   const [codeLang, setCodeLang] = useState<'python' | 'node'>('python');
   const [copiedCode, setCopiedCode] = useState(false);
+
+  // Quest/Tutorial Mode States
+  const [isQuestMode, setIsQuestMode] = useState(false);
+  const [questStep, setQuestStep] = useState(1);
+  const [showQuestSuccessModal, setShowQuestSuccessModal] = useState(false);
+
+  // Quest verification conditions
+  const isStep1Complete = useMemo(() => {
+    return isQuestMode && questStep === 1 && publicKey !== '' && privateKey !== '' && keySize === 2048;
+  }, [isQuestMode, questStep, publicKey, privateKey, keySize]);
+
+  const isStep2Complete = useMemo(() => {
+    return isQuestMode && questStep === 2 && encPlaintext.trim() === 'HELLO' && encCiphertext !== '';
+  }, [isQuestMode, questStep, encPlaintext, encCiphertext]);
+
+  const isStep3Complete = useMemo(() => {
+    return isQuestMode && questStep === 3 && decPlaintext === 'HELLO';
+  }, [isQuestMode, questStep, decPlaintext]);
+
+  // Handle auto-routing and pre-filling variables per quest step
+  useEffect(() => {
+    if (isQuestMode) {
+      if (questStep === 1) {
+        setActiveTab('keygen');
+        setKeySize(2048);
+        setPublicKey('');
+        setPrivateKey('');
+      } else if (questStep === 2) {
+        setActiveTab('encrypt');
+        setEncPlaintext('HELLO');
+        setEncCiphertext('');
+      } else if (questStep === 3) {
+        setActiveTab('decrypt');
+        setDecPlaintext(null);
+      }
+    }
+  }, [isQuestMode, questStep]);
 
   const getAsymmetricCodeRecipe = () => {
     const escapedPlaintext = encPlaintext.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -208,34 +245,183 @@ console.log("Decrypted:", decrypted.toString('utf8'));`;
           </p>
         </div>
         
-        <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
-          {(['keygen', 'encrypt', 'decrypt', 'flow', 'about'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => handleTabChange(tab)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${
-                activeTab === tab 
-                  ? 'bg-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.3)]' 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              if (isQuestMode) {
+                setIsQuestMode(false);
+                setQuestStep(1);
+              } else {
+                setIsQuestMode(true);
+                setQuestStep(1);
+              }
+            }}
+            className={`px-4 py-2 rounded-lg font-mono text-xs font-bold uppercase tracking-wider transition-all border flex items-center gap-2 cursor-pointer ${
+              isQuestMode
+                ? 'bg-indigo-500 text-black border-indigo-400 hover:bg-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.4)]'
+                : 'bg-cyber-darker text-indigo-400 border-indigo-500/20 hover:border-indigo-500/50 hover:bg-indigo-500/5'
+            }`}
+          >
+            <Compass className={`w-4 h-4 ${isQuestMode ? 'animate-spin-slow' : ''}`} />
+            {isQuestMode ? 'Exit Quest' : 'Start Guided Quest'}
+          </button>
+
+          <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
+            {(['keygen', 'encrypt', 'decrypt', 'flow', 'about'] as const).map((tab) => (
+              <button
+                key={tab}
+                disabled={isQuestMode}
+                onClick={() => !isQuestMode && handleTabChange(tab)}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                  activeTab === tab 
+                    ? 'bg-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.3)]' 
+                    : isQuestMode
+                    ? 'text-gray-650 cursor-not-allowed'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
+      {/* Guided Quest HUD when active */}
+      {isQuestMode && (
+        <div className="glass-panel p-5 bg-gradient-to-r from-indigo-500/10 via-indigo-500/5 to-gray-900/50 border border-indigo-500/30 rounded-xl space-y-4 mb-8 shadow-[0_0_20px_rgba(99,102,241,0.05)] animate-fade-in">
+          <div className="flex items-center justify-between border-b border-gray-850/80 pb-3">
+            <div className="flex items-center gap-3">
+              <Compass className="w-6 h-6 text-indigo-400 animate-spin-slow" />
+              <div>
+                <h2 className="text-base font-bold text-white uppercase tracking-wider font-mono">
+                  Guided Learning Quest: RSA Asymmetric Keys
+                </h2>
+                <p className="text-[10px] text-gray-400 font-mono">Step {questStep} of 3</p>
+              </div>
+            </div>
+            
+            {/* Step Progress Indicators */}
+            <div className="flex items-center gap-1.5">
+              {[1, 2, 3].map((stepNum) => (
+                <div
+                  key={stepNum}
+                  className={`w-5 h-5 rounded-full border transition-all flex items-center justify-center text-[10px] font-bold font-mono ${
+                    questStep > stepNum
+                      ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+                      : questStep === stepNum
+                      ? 'bg-indigo-500 border-indigo-400 text-white shadow-[0_0_8px_rgba(99,102,241,0.3)] animate-pulse'
+                      : 'bg-gray-900 border-gray-800 text-gray-650'
+                  }`}
+                >
+                  {questStep > stepNum ? '✓' : stepNum}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            
+            {/* Instructions */}
+            <div className="lg:col-span-8 space-y-3">
+              {questStep === 1 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                    Story: Generating RSA Keys
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    Unlike symmetric ciphers, asymmetric ciphers generate two mathematically linked keys: a **public key** for encryption, and a **private key** for decryption. Let's generate a new key pair.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    <strong className="text-indigo-400 font-semibold font-mono">Action Required:</strong> Ensure Key Size is set to **2048-bit** and click **"Generate Key Pair"** under the keygen tab.
+                  </p>
+                </div>
+              )}
+
+              {questStep === 2 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                    Story: Public Key Lockbox
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    Now we encrypt a secret message using the recipient's **public key**. This makes it so ONLY the matching private key can ever reverse it.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    <strong className="text-indigo-400 font-semibold font-mono">Action Required:</strong> Type message text as <span className="font-mono text-white bg-black/40 px-1.5 py-0.5 rounded">HELLO</span> under the encrypt tab, and click **"Asymmetric Encrypt"**.
+                  </p>
+                </div>
+              )}
+
+              {questStep === 3 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                    Story: Decrypting with the Secret Key
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    To read the message, the recipient uses their matching **private key** to decrypt the Base64 ciphertext back to plaintext.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    <strong className="text-indigo-400 font-semibold font-mono">Action Required:</strong> Under the decrypt tab, verify your private key and ciphertext are loaded, then click **"Asymmetric Decrypt"**.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Next Button */}
+            <div className="lg:col-span-4 flex flex-col items-center lg:items-end justify-center gap-3">
+              {((questStep === 1 && isStep1Complete) ||
+                (questStep === 2 && isStep2Complete) ||
+                (questStep === 3 && isStep3Complete)) ? (
+                <button
+                  onClick={() => {
+                    if (questStep < 3) {
+                      setQuestStep(prev => prev + 1);
+                    } else {
+                      updateLabProgress('asymmetric', 100);
+                      setShowQuestSuccessModal(true);
+                      setIsQuestMode(false);
+                      setQuestStep(1);
+                    }
+                  }}
+                  className="w-full lg:w-auto px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-extrabold uppercase rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.4)] animate-bounce cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {questStep === 3 ? 'Complete Quest!' : 'Advance to Next Step'}
+                </button>
+              ) : (
+                <div className="w-full text-center lg:text-right border border-gray-850 bg-cyber-darker/60 rounded-lg p-3 text-[11px] font-mono text-indigo-400 animate-pulse">
+                  ⚠️ Step conditions incomplete. Follow instructions above.
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  setIsQuestMode(false);
+                  setQuestStep(1);
+                }}
+                className="text-[10px] font-mono text-gray-500 hover:text-gray-400 border-b border-gray-800 hover:border-gray-500 pb-0.5 transition-all cursor-pointer"
+              >
+                Exit Tutorial & Return to Sandbox
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* ELI5 Banner */}
-      <Eli5Banner
-        title="Understanding Asymmetric (Public Key) Cryptography"
-        analogyTitle="The Public Mailbox with Two Keys"
-        analogyDescription="Imagine you put an open padlock on a public mailbox. ANYONE in the world can drop a secret letter into the slot and snap the padlock shut (Public Key Encryption). But ONLY YOU hold the physical key to unlock the mailbox door (Private Key Decryption). You never need to share your secret key with anyone!"
-        bulletPoints={[
-          "Public Key (Mailbox Padlock): Published publicly for anyone to send you encrypted messages.",
-          "Private Key (House Key): Kept 100% secret by you to unlock received messages.",
-          "No Prior Key Exchange: Solves the problem of sharing secret keys over untrusted networks."
-        ]}
-      />
+      {!isQuestMode && (
+        <Eli5Banner
+          title="Understanding Asymmetric (Public Key) Cryptography"
+          analogyTitle="The Public Mailbox with Two Keys"
+          analogyDescription="Imagine you put an open padlock on a public mailbox. ANYONE in the world can drop a secret letter into the slot and snap the padlock shut (Public Key Encryption). But ONLY YOU hold the physical key to unlock the mailbox door (Private Key Decryption). You never need to share your secret key with anyone!"
+          bulletPoints={[
+            "Public Key (Mailbox Padlock): Published publicly for anyone to send you encrypted messages.",
+            "Private Key (House Key): Kept 100% secret by you to unlock received messages.",
+            "No Prior Key Exchange: Solves the problem of sharing secret keys over untrusted networks."
+          ]}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
@@ -256,7 +442,8 @@ console.log("Decrypted:", decrypted.toString('utf8'));`;
                   <select
                     value={keySize}
                     onChange={(e) => setKeySize(Number(e.target.value))}
-                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm"
+                    disabled={isQuestMode}
+                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm font-semibold"
                   >
                     <option value={1024}>1024 bits (Weak / Legacy)</option>
                     <option value={2048}>2048 bits (Secure Standard)</option>
@@ -266,7 +453,11 @@ console.log("Decrypted:", decrypted.toString('utf8'));`;
                 <button
                   onClick={generateKeys}
                   disabled={genLoading}
-                  className="w-full inline-flex items-center justify-center p-2.5 rounded-lg bg-indigo-650 hover:bg-indigo-600 text-white font-semibold"
+                  className={`w-full inline-flex items-center justify-center p-2.5 rounded-lg text-white font-semibold transition-all ${
+                    isQuestMode && questStep === 1 && publicKey === ''
+                      ? 'bg-indigo-650 hover:bg-indigo-600 ring-2 ring-indigo-500/40 animate-pulse shadow-[0_0_15px_rgba(99,102,241,0.3)] cursor-pointer'
+                      : 'bg-indigo-650 hover:bg-indigo-600 cursor-pointer'
+                  }`}
                 >
                   {genLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Key className="w-4 h-4 mr-2" />}
                   Generate Key Pair
@@ -320,7 +511,12 @@ console.log("Decrypted:", decrypted.toString('utf8'));`;
                     value={encPlaintext}
                     onChange={(e) => setEncPlaintext(e.target.value)}
                     rows={3}
-                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-3 text-white font-mono text-sm"
+                    disabled={isQuestMode && questStep !== 2}
+                    className={`w-full bg-cyber-darker border rounded-lg p-3 text-white font-mono text-sm transition-all ${
+                      isQuestMode && questStep === 2 && encPlaintext.trim() !== 'HELLO'
+                        ? 'border-indigo-500 ring-2 ring-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.3)] animate-pulse'
+                        : 'border-gray-800'
+                    }`}
                   />
                 </div>
 
@@ -330,6 +526,7 @@ console.log("Decrypted:", decrypted.toString('utf8'));`;
                     value={encPublicKey}
                     onChange={(e) => setEncPublicKey(e.target.value)}
                     rows={6}
+                    disabled={isQuestMode}
                     placeholder="-----BEGIN PUBLIC KEY-----..."
                     className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-3 text-white font-mono text-[10px]"
                   />
@@ -338,7 +535,11 @@ console.log("Decrypted:", decrypted.toString('utf8'));`;
                 <button
                   onClick={handleEncrypt}
                   disabled={encLoading}
-                  className="w-full inline-flex items-center justify-center p-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
+                  className={`w-full inline-flex items-center justify-center p-2.5 rounded-lg text-white font-semibold transition-all ${
+                    isQuestMode && questStep === 2 && encPlaintext.trim() === 'HELLO' && encCiphertext === ''
+                      ? 'bg-indigo-550 hover:bg-indigo-500 ring-2 ring-indigo-500/40 animate-pulse shadow-[0_0_15px_rgba(99,102,241,0.3)] cursor-pointer'
+                      : 'bg-indigo-600 hover:bg-indigo-500 cursor-pointer'
+                  }`}
                 >
                   {encLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
                   Asymmetric Encrypt
@@ -371,6 +572,7 @@ console.log("Decrypted:", decrypted.toString('utf8'));`;
                     value={decCiphertext}
                     onChange={(e) => setDecCiphertext(e.target.value)}
                     rows={3}
+                    disabled={isQuestMode}
                     placeholder="Paste Base64 encoded ciphertext..."
                     className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-3 text-white font-mono text-[10px] break-all"
                   />
@@ -382,6 +584,7 @@ console.log("Decrypted:", decrypted.toString('utf8'));`;
                     value={decPrivateKey}
                     onChange={(e) => setDecPrivateKey(e.target.value)}
                     rows={6}
+                    disabled={isQuestMode}
                     placeholder="-----BEGIN PRIVATE KEY-----..."
                     className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-3 text-white font-mono text-[10px]"
                   />
@@ -390,7 +593,11 @@ console.log("Decrypted:", decrypted.toString('utf8'));`;
                 <button
                   onClick={handleDecrypt}
                   disabled={decLoading}
-                  className="w-full inline-flex items-center justify-center p-2.5 rounded-lg bg-indigo-650 hover:bg-indigo-600 text-white font-semibold"
+                  className={`w-full inline-flex items-center justify-center p-2.5 rounded-lg text-white font-semibold transition-all ${
+                    isQuestMode && questStep === 3 && decPlaintext === null
+                      ? 'bg-indigo-600 hover:bg-indigo-500 ring-2 ring-indigo-500/40 animate-pulse shadow-[0_0_15px_rgba(99,102,241,0.3)] cursor-pointer'
+                      : 'bg-indigo-650 hover:bg-indigo-600 cursor-pointer'
+                  }`}
                 >
                   {decLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Unlock className="w-4 h-4 mr-2" />}
                   Asymmetric Decrypt
@@ -589,6 +796,48 @@ console.log("Decrypted:", decrypted.toString('utf8'));`;
           }
         ]}
       />
+
+      {/* Quest Success Celebration Modal */}
+      {showQuestSuccessModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-cyber-dark border-2 border-indigo-500/50 rounded-2xl p-8 max-w-md text-center shadow-[0_0_40px_rgba(99,102,241,0.15)] relative">
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 text-5xl">🏆</div>
+            
+            <h2 className="text-2xl font-extrabold text-white mb-2 font-mono">
+              Quest Completed!
+            </h2>
+            <p className="text-indigo-400 text-xs font-mono font-semibold uppercase tracking-wider mb-4">
+              🎖️ Master of Asymmetric Keys
+            </p>
+            
+            <p className="text-xs text-gray-300 leading-relaxed mb-6">
+              Congratulations! You've successfully completed the RSA Asymmetric Laboratory Quest. You generated custom 2048-bit keypairs, locked messages using public keys, and restored plaintext securely via private keys.
+            </p>
+
+            <div className="bg-cyber-darker p-4 rounded-xl border border-gray-850 mb-6 text-left space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Milestone reached:</span>
+                <span className="text-indigo-400 font-bold">100% Completion</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Skills updated:</span>
+                <span className="text-white font-mono font-bold">RSA 2048, Keypair Encapsulation</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">XP Reward:</span>
+                <span className="text-amber-400 font-bold">+50 XP</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowQuestSuccessModal(false)}
+              className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-600 text-white text-xs font-mono font-extrabold uppercase rounded-lg shadow-[0_0_15px_rgba(99,102,241,0.3)] transition-all cursor-pointer animate-pulse"
+            >
+              Back to Laboratories
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

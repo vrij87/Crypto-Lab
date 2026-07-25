@@ -19,8 +19,10 @@ class CryptoService:
     def generate_hash(text: str, algorithm: str) -> str:
         """Generates a cryptographic hash for the given text."""
         data = text.encode("utf-8")
-        alg = algorithm.upper()
-        
+        alg = algorithm.upper().replace(" ", "")
+        if alg.startswith("SHA-"):
+            alg = alg.replace("SHA-", "SHA")
+            
         if alg == "MD5":
             return hashlib.md5(data).hexdigest()
         elif alg == "SHA1":

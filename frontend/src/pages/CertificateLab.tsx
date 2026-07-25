@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Globe, RefreshCw, Server, ShieldCheck, Award, FileText, Lock, Unlock, 
   ChevronRight, RotateCcw, CheckCircle2, AlertTriangle, ShieldAlert,
-  ArrowRight, ArrowLeft
+  ArrowRight, ArrowLeft, Compass
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RealWorldUsesCard } from '../components/RealWorldUsesCard';
@@ -77,6 +77,39 @@ const CertificateLab: React.FC = () => {
   const [secretDerived, setSecretDerived] = useState(false);
   const [handshakeLogs, setHandshakeLogs] = useState<string[]>(["[System] Click 'Next Step' to initiate TLS connection..."]);
   const [packetFlowing, setPacketFlowing] = useState(false);
+
+  // Quest/Tutorial Mode States
+  const [isQuestMode, setIsQuestMode] = useState(false);
+  const [questStep, setQuestStep] = useState(1);
+  const [showQuestSuccessModal, setShowQuestSuccessModal] = useState(false);
+
+  // Quest verification conditions
+  const isStep1Complete = useMemo(() => {
+    return isQuestMode && questStep === 1 && urlInput.trim() === 'google.com' && certData !== null;
+  }, [isQuestMode, questStep, urlInput, certData]);
+
+  const isStep2Complete = useMemo(() => {
+    return isQuestMode && questStep === 2 && activeTab === 'handshake' && currentStep === 5;
+  }, [isQuestMode, questStep, activeTab, currentStep]);
+
+  // Handle auto-routing and pre-filling variables per quest step
+  useEffect(() => {
+    if (isQuestMode) {
+      if (questStep === 1) {
+        setActiveTab('explorer');
+        setUrlInput('google.com');
+        setCertData(null);
+      } else if (questStep === 2) {
+        setActiveTab('handshake');
+        setCurrentStep(0);
+        setCipherChoice('');
+        setCertChecks({ date: false, host: false, signature: false });
+        setCertVerified(false);
+        setSecretDerived(false);
+        setHandshakeLogs(["[System] Click 'Next Step' to initiate TLS connection..."]);
+      }
+    }
+  }, [isQuestMode, questStep]);
   
   const terminalEndRef = useRef<HTMLDivElement>(null);
 
@@ -292,54 +325,190 @@ const CertificateLab: React.FC = () => {
           </p>
         </div>
 
-        {/* Tab Selection buttons */}
-        <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850 self-start md:self-auto">
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setActiveTab('explorer')}
-            className={`px-4 py-2 rounded-md text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
-              activeTab === 'explorer' 
-                ? 'bg-emerald-600 text-white font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]' 
-                : 'text-gray-400 hover:text-white'
+            onClick={() => {
+              if (isQuestMode) {
+                setIsQuestMode(false);
+                setQuestStep(1);
+              } else {
+                setIsQuestMode(true);
+                setQuestStep(1);
+              }
+            }}
+            className={`px-4 py-2 rounded-lg font-mono text-xs font-bold uppercase tracking-wider transition-all border flex items-center gap-2 cursor-pointer ${
+              isQuestMode
+                ? 'bg-emerald-500 text-black border-emerald-400 hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+                : 'bg-cyber-darker text-emerald-400 border-emerald-500/20 hover:border-emerald-500/50 hover:bg-emerald-500/5'
             }`}
           >
-            1. Certificate Explorer
+            <Compass className={`w-4 h-4 ${isQuestMode ? 'animate-spin-slow' : ''}`} />
+            {isQuestMode ? 'Exit Quest' : 'Start Guided Quest'}
           </button>
-          <button
-            onClick={() => setActiveTab('handshake')}
-            className={`px-4 py-2 rounded-md text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
-              activeTab === 'handshake' 
-                ? 'bg-emerald-600 text-white font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]' 
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            2. TLS Handshake Animator
-          </button>
+
+          <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850 self-start md:self-auto">
+            <button
+              disabled={isQuestMode}
+              onClick={() => setActiveTab('explorer')}
+              className={`px-4 py-2 rounded-md text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                activeTab === 'explorer' 
+                  ? 'bg-emerald-600 text-white font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]' 
+                  : isQuestMode
+                  ? 'text-gray-655 cursor-not-allowed'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              1. Certificate Explorer
+            </button>
+            <button
+              disabled={isQuestMode}
+              onClick={() => setActiveTab('handshake')}
+              className={`px-4 py-2 rounded-md text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                activeTab === 'handshake' 
+                  ? 'bg-emerald-600 text-white font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]' 
+                  : isQuestMode
+                  ? 'text-gray-655 cursor-not-allowed'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              2. TLS Handshake Animator
+            </button>
+          </div>
         </div>
       </div>
 
+      {/* Guided Quest HUD when active */}
+      {isQuestMode && (
+        <div className="glass-panel p-5 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-gray-900/50 border border-emerald-500/30 rounded-xl space-y-4 mb-8 shadow-[0_0_20px_rgba(16,185,129,0.05)] animate-fade-in">
+          <div className="flex items-center justify-between border-b border-gray-850/80 pb-3">
+            <div className="flex items-center gap-3">
+              <Compass className="w-6 h-6 text-emerald-400 animate-spin-slow" />
+              <div>
+                <h2 className="text-base font-bold text-white uppercase tracking-wider font-mono">
+                  Guided Learning Quest: SSL/TLS Certificates & Handshake
+                </h2>
+                <p className="text-[10px] text-gray-400 font-mono">Step {questStep} of 2</p>
+              </div>
+            </div>
+            
+            {/* Step Progress Indicators */}
+            <div className="flex items-center gap-1.5">
+              {[1, 2].map((stepNum) => (
+                <div
+                  key={stepNum}
+                  className={`w-5 h-5 rounded-full border transition-all flex items-center justify-center text-[10px] font-bold font-mono ${
+                    questStep > stepNum
+                      ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+                      : questStep === stepNum
+                      ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_8px_rgba(16,185,129,0.3)] animate-pulse'
+                      : 'bg-gray-900 border-gray-800 text-gray-650'
+                  }`}
+                >
+                  {questStep > stepNum ? '✓' : stepNum}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            
+            {/* Instructions */}
+            <div className="lg:col-span-8 space-y-3">
+              {questStep === 1 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                    Story: Retrieving Server Certificates
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    Servers prove their identity using X.509 SSL/TLS certificates signed by recognized Certificate Authorities (CAs). Let's retrieve and explore the certificate for <span className="font-mono text-emerald-300 font-bold bg-black/40 px-1.5 py-0.5 rounded border border-gray-850">google.com</span>.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    <strong className="text-emerald-400 font-semibold font-mono">Action Required:</strong> Type domain name <span className="font-mono text-white bg-black/40 px-1.5 py-0.5 rounded">google.com</span> in the input box and click the **"Analyze Domain"** button.
+                  </p>
+                </div>
+              )}
+
+              {questStep === 2 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                    Story: Stepping through the TLS Handshake
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    Now we execute the 5-step TLS handshake. This involves selecting a cipher suite, verifying certificate parameters, performing Diffie-Hellman calculations, and establishing the final encrypted HTTPS tunnel.
+                  </p>
+                  <p className="text-xs text-gray-450">
+                    <strong className="text-emerald-400 font-semibold font-mono">Action Required:</strong> Click **"Next Step"** repeatedly under the TLS Handshake Animator tab until the session status becomes **"HTTPS Secured!"** (Step 5). Note: You must pick `TLS_AES_256_GCM_SHA384` in Step 2, and verify certificate checks!
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Next Button */}
+            <div className="lg:col-span-4 flex flex-col items-center lg:items-end justify-center gap-3">
+              {((questStep === 1 && isStep1Complete) ||
+                (questStep === 2 && isStep2Complete)) ? (
+                <button
+                  onClick={() => {
+                    if (questStep < 2) {
+                      setQuestStep(prev => prev + 1);
+                    } else {
+                      updateLabProgress('certificates', 100);
+                      setShowQuestSuccessModal(true);
+                      setIsQuestMode(false);
+                      setQuestStep(1);
+                    }
+                  }}
+                  className="w-full lg:w-auto px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-extrabold uppercase rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.4)] animate-bounce cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {questStep === 2 ? 'Complete Quest!' : 'Advance to Next Step'}
+                </button>
+              ) : (
+                <div className="w-full text-center lg:text-right border border-gray-850 bg-cyber-darker/60 rounded-lg p-3 text-[11px] font-mono text-emerald-400 animate-pulse">
+                  ⚠️ Step conditions incomplete. Follow instructions above.
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  setIsQuestMode(false);
+                  setQuestStep(1);
+                }}
+                className="text-[10px] font-mono text-gray-500 hover:text-gray-450 border-b border-gray-850 hover:border-gray-500 pb-0.5 transition-all cursor-pointer"
+              >
+                Exit Tutorial & Return to Sandbox
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* ELI5 Banner */}
-      <Eli5Banner
-        title={activeTab === 'explorer' ? "Understanding Certificate Chains" : "Understanding the SSL/TLS Handshake"}
-        analogyTitle={activeTab === 'explorer' ? "The Passport Chain of Trust" : "The Secure Meeting Handshake"}
-        analogyDescription={
-          activeTab === 'explorer' 
-            ? "When a web server shows you its SSL certificate, it's like showing a passport. The browser trusts the passport because it was signed by a government agency (Intermediate CA), which in turn was authorized by a global federation (Root CA) that your browser already knows and trust."
-            : "Imagine meeting a courier. First, you say hello and ask which language to use (ClientHello). The courier shows their badge (Certificate). You both calculate a secret code by mixing colors (Diffie-Hellman). Once calculated, you lock the briefcase and speak only using the code (Encrypted Session)."
-        }
-        bulletPoints={
-          activeTab === 'explorer' 
-            ? [
-                "Common Name (CN): The exact website domain name the certificate belongs to.",
-                "Issuer: The Certificate Authority (CA) that validated the server's identity and signed the card.",
-                "Root Certificate Stores: Hardcoded certificates preloaded into your operating system to anchor safety trust."
-              ]
-            : [
-                "Asymmetric Phase: Used to verify server identity (Certificates) and exchange key shares securely.",
-                "Diffie-Hellman math: Generates a temporary, shared symmetric key without sending the actual key over the wire.",
-                "Symmetric Phase: Once session keys match, high-speed authenticated encryption (AES-GCM) protects the actual messages."
-              ]
-        }
-      />
+      {!isQuestMode && (
+        <Eli5Banner
+          title={activeTab === 'explorer' ? "Understanding Certificate Chains" : "Understanding the SSL/TLS Handshake"}
+          analogyTitle={activeTab === 'explorer' ? "The Passport Chain of Trust" : "The Secure Meeting Handshake"}
+          analogyDescription={
+            activeTab === 'explorer' 
+              ? "When a web server shows you its SSL certificate, it's like showing a passport. The browser trusts the passport because it was signed by a government agency (Intermediate CA), which in turn was authorized by a global federation (Root CA) that your browser already knows and trust."
+              : "Imagine meeting a courier. First, you say hello and ask which language to use (ClientHello). The courier shows their badge (Certificate). You both calculate a secret code by mixing colors (Diffie-Hellman). Once calculated, you lock the briefcase and speak only using the code (Encrypted Session)."
+          }
+          bulletPoints={
+            activeTab === 'explorer' 
+              ? [
+                  "Root CA: The top-level trusted authorities hardcoded into your operating system/browser.",
+                  "Intermediate CA: Trusted authorities signed by Roots to issue certificates on their behalf.",
+                  "Subject Common Name: The specific web domain (e.g. google.com) the certificate validates."
+                ]
+              : [
+                  "ClientHello & ServerHello: Browser and server exchange security capabilities.",
+                  "Key Agreement: Calculating a shared secret using modular exponentiation math.",
+                  "Session Key: The final symmetric key (AES) used to encrypt all web traffic."
+                ]
+          }
+        />
+      )}
 
       {/* TAB 1: CERTIFICATE EXPLORER (Original) */}
       {activeTab === 'explorer' && (
@@ -358,14 +527,23 @@ const CertificateLab: React.FC = () => {
                     value={urlInput}
                     onChange={(e) => setUrlInput(e.target.value)}
                     placeholder="e.g. google.com, github.com"
-                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-3 pl-10 text-white font-mono text-sm focus:outline-none focus:border-emerald-500"
+                    disabled={isQuestMode && questStep !== 1}
+                    className={`w-full bg-cyber-darker border rounded-lg p-3 pl-10 text-white font-mono text-sm focus:outline-none focus:border-emerald-500 transition-all ${
+                      isQuestMode && questStep === 1 && urlInput.trim() !== 'google.com'
+                        ? 'border-emerald-500 ring-2 ring-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse'
+                        : 'border-gray-800'
+                    }`}
                   />
                   <Globe className="w-5 h-5 text-gray-500 absolute left-3 top-3.5" />
                 </div>
                 <button
                   onClick={analyzeCert}
                   disabled={loading}
-                  className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-colors cursor-pointer"
+                  className={`inline-flex items-center justify-center px-6 py-3 rounded-lg text-white font-semibold text-sm transition-all cursor-pointer ${
+                    isQuestMode && questStep === 1 && urlInput.trim() === 'google.com' && certData === null
+                      ? 'bg-emerald-500 hover:bg-emerald-455 ring-2 ring-emerald-500/40 animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                      : 'bg-emerald-600 hover:bg-emerald-500'
+                  }`}
                 >
                   {loading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                   Analyze Domain
@@ -934,7 +1112,11 @@ const CertificateLab: React.FC = () => {
                   <button
                     onClick={handleNextStep}
                     disabled={currentStep >= 5 || packetFlowing}
-                    className="inline-flex items-center px-5 py-2.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold uppercase tracking-wider transition-all shadow-[0_0_10px_rgba(16,185,129,0.2)] disabled:opacity-50 cursor-pointer"
+                    className={`inline-flex items-center px-5 py-2.5 rounded text-white text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer ${
+                      isQuestMode && questStep === 2 && currentStep < 5 && !packetFlowing
+                        ? 'bg-emerald-500 hover:bg-emerald-450 ring-2 ring-emerald-500/40 animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                        : 'bg-emerald-600 hover:bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+                    }`}
                   >
                     <span>Next Step</span>
                     <ArrowRight className="w-3.5 h-3.5 ml-1" />
@@ -1008,6 +1190,47 @@ const CertificateLab: React.FC = () => {
         />
       </div>
 
+      {/* Quest Success Celebration Modal */}
+      {showQuestSuccessModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-cyber-dark border-2 border-emerald-500/50 rounded-2xl p-8 max-w-md text-center shadow-[0_0_40px_rgba(16,185,129,0.15)] relative">
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 text-5xl">🏆</div>
+            
+            <h2 className="text-2xl font-extrabold text-white mb-2 font-mono">
+              Quest Completed!
+            </h2>
+            <p className="text-emerald-400 text-xs font-mono font-semibold uppercase tracking-wider mb-4">
+              🎖️ Master of SSL/TLS & Trust
+            </p>
+            
+            <p className="text-xs text-gray-300 leading-relaxed mb-6">
+              Congratulations! You've successfully completed the SSL/TLS Certificate Explorer Quest. You inspected domains for valid certificates and successfully executed a step-by-step cryptographic handshake.
+            </p>
+
+            <div className="bg-cyber-darker p-4 rounded-xl border border-gray-850 mb-6 text-left space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Milestone reached:</span>
+                <span className="text-emerald-400 font-bold">100% Completion</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Skills updated:</span>
+                <span className="text-white font-mono font-bold">TLS 1.3 Handshake, Cert Explorer</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">XP Reward:</span>
+                <span className="text-amber-400 font-bold">+50 XP</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowQuestSuccessModal(false)}
+              className="w-full py-2.5 bg-emerald-650 hover:bg-emerald-600 text-white text-xs font-mono font-extrabold uppercase rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all cursor-pointer animate-pulse"
+            >
+              Back to Laboratories
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

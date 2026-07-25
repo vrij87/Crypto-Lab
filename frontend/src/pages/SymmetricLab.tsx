@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Key, Lock, Unlock, RefreshCw, Copy, Check, Info, ArrowRight, Code, ShieldAlert, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Key, Lock, Unlock, RefreshCw, Copy, Check, Info, ArrowRight, Code, ShieldAlert, RotateCcw, Compass, CheckCircle2 } from 'lucide-react';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
@@ -39,6 +39,36 @@ const SymmetricLab: React.FC = () => {
   const [tamperDecResult, setTamperDecResult] = useState<string | null>(null);
   const [tamperDecError, setTamperDecError] = useState<string | null>(null);
   const [tamperLoading, setTamperLoading] = useState(false);
+
+  // Reset bit-flipping when encryption results change
+  const [isQuestMode, setIsQuestMode] = useState(false);
+  const [questStep, setQuestStep] = useState(1);
+  const [showQuestSuccessModal, setShowQuestSuccessModal] = useState(false);
+
+  // Quest verification conditions
+  const isStep1Complete = useMemo(() => {
+    return isQuestMode && questStep === 1 && encPlaintext.trim() === 'CONFIDENTIAL' && encMode === 'GCM' && encResult !== null;
+  }, [isQuestMode, questStep, encPlaintext, encMode, encResult]);
+
+  const isStep2Complete = useMemo(() => {
+    return isQuestMode && questStep === 2 && Object.keys(tamperMap).length > 0 && (tamperDecError !== null || tamperDecResult !== null);
+  }, [isQuestMode, questStep, tamperMap, tamperDecError, tamperDecResult]);
+
+  // Handle auto-routing and pre-filling variables per quest step
+  useEffect(() => {
+    if (isQuestMode) {
+      if (questStep === 1) {
+        setActiveTab('encrypt');
+        setEncPlaintext('CONFIDENTIAL');
+        setEncMode('GCM');
+        setEncAlg('AES');
+        setEncKeySize(256);
+        setEncResult(null);
+      } else if (questStep === 2) {
+        setActiveTab('encrypt');
+      }
+    }
+  }, [isQuestMode, questStep]);
 
   // Reset bit-flipping when encryption results change
   useEffect(() => {
@@ -286,34 +316,168 @@ console.log(\`Ciphertext: \${ciphertext}\`);`;
           </p>
         </div>
         
-        <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
-          {(['encrypt', 'decrypt', 'flowchart', 'about'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => handleTabChange(tab)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${
-                activeTab === tab 
-                  ? 'bg-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]' 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              if (isQuestMode) {
+                setIsQuestMode(false);
+                setQuestStep(1);
+              } else {
+                setIsQuestMode(true);
+                setQuestStep(1);
+              }
+            }}
+            className={`px-4 py-2 rounded-lg font-mono text-xs font-bold uppercase tracking-wider transition-all border flex items-center gap-2 cursor-pointer ${
+              isQuestMode
+                ? 'bg-blue-500 text-black border-blue-400 hover:bg-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.4)]'
+                : 'bg-cyber-darker text-blue-400 border-blue-500/20 hover:border-blue-500/50 hover:bg-blue-500/5'
+            }`}
+          >
+            <Compass className={`w-4 h-4 ${isQuestMode ? 'animate-spin-slow' : ''}`} />
+            {isQuestMode ? 'Exit Quest' : 'Start Guided Quest'}
+          </button>
+
+          <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
+            {(['encrypt', 'decrypt', 'flowchart', 'about'] as const).map((tab) => (
+              <button
+                key={tab}
+                disabled={isQuestMode}
+                onClick={() => !isQuestMode && handleTabChange(tab)}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                  activeTab === tab 
+                    ? 'bg-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]' 
+                    : isQuestMode
+                    ? 'text-gray-650 cursor-not-allowed'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
+      {/* Guided Quest HUD when active */}
+      {isQuestMode && (
+        <div className="glass-panel p-5 bg-gradient-to-r from-blue-500/10 via-blue-500/5 to-gray-900/50 border border-blue-500/30 rounded-xl space-y-4 mb-8 shadow-[0_0_20px_rgba(59,130,246,0.05)] animate-fade-in">
+          <div className="flex items-center justify-between border-b border-gray-850/80 pb-3">
+            <div className="flex items-center gap-3">
+              <Compass className="w-6 h-6 text-blue-400 animate-spin-slow" />
+              <div>
+                <h2 className="text-base font-bold text-white uppercase tracking-wider font-mono">
+                  Guided Learning Quest: Symmetric AES Ciphers
+                </h2>
+                <p className="text-[10px] text-gray-400 font-mono">Step {questStep} of 2</p>
+              </div>
+            </div>
+            
+            {/* Step Progress Indicators */}
+            <div className="flex items-center gap-1.5">
+              {[1, 2].map((stepNum) => (
+                <div
+                  key={stepNum}
+                  className={`w-5 h-5 rounded-full border transition-all flex items-center justify-center text-[10px] font-bold font-mono ${
+                    questStep > stepNum
+                      ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+                      : questStep === stepNum
+                      ? 'bg-blue-500 border-blue-400 text-black shadow-[0_0_8px_rgba(59,130,246,0.3)] animate-pulse'
+                      : 'bg-gray-900 border-gray-800 text-gray-650'
+                  }`}
+                >
+                  {questStep > stepNum ? '✓' : stepNum}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            
+            {/* Instructions */}
+            <div className="lg:col-span-8 space-y-3">
+              {questStep === 1 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                    Story: Authenticated AES-GCM
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    Symmetric ciphers use the same key for encryption and decryption. **AES-GCM** is an authenticated encryption scheme (AEAD) that appends a signature tag to prove the ciphertext has not been altered.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    <strong className="text-blue-400 font-semibold font-mono">Action Required:</strong> Type plaintext as <span className="font-mono text-white bg-black/40 px-1.5 py-0.5 rounded">CONFIDENTIAL</span>, ensure Mode is **GCM**, and click the **"Encrypt Plaintext"** button.
+                  </p>
+                </div>
+              )}
+
+              {questStep === 2 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                    Story: The Active Tamper Attack
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    What happens if a hacker alters a single bit of your ciphertext in transit? Let's try corrupting the message and watch AES-GCM reject it during decryption.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    <strong className="text-blue-400 font-semibold font-mono">Action Required:</strong> In the **Bit-Flipping Integrity Playground** below, click on any byte block to corrupt it, then click **"Decrypt Tampered Payload"**.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Next Button */}
+            <div className="lg:col-span-4 flex flex-col items-center lg:items-end justify-center gap-3">
+              {((questStep === 1 && isStep1Complete) ||
+                (questStep === 2 && isStep2Complete)) ? (
+                <button
+                  onClick={() => {
+                    if (questStep < 2) {
+                      setQuestStep(prev => prev + 1);
+                    } else {
+                      updateLabProgress('symmetric', 100);
+                      setShowQuestSuccessModal(true);
+                      setIsQuestMode(false);
+                      setQuestStep(1);
+                    }
+                  }}
+                  className="w-full lg:w-auto px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-extrabold uppercase rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.4)] animate-bounce cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {questStep === 2 ? 'Complete Quest!' : 'Advance to Next Step'}
+                </button>
+              ) : (
+                <div className="w-full text-center lg:text-right border border-gray-850 bg-cyber-darker/60 rounded-lg p-3 text-[11px] font-mono text-blue-400 animate-pulse">
+                  ⚠️ Step conditions incomplete. Follow instructions above.
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  setIsQuestMode(false);
+                  setQuestStep(1);
+                }}
+                className="text-[10px] font-mono text-gray-500 hover:text-gray-400 border-b border-gray-800 hover:border-gray-500 pb-0.5 transition-all cursor-pointer"
+              >
+                Exit Tutorial & Return to Sandbox
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* ELI5 Banner */}
-      <Eli5Banner
-        title="Understanding Symmetric Encryption"
-        analogyTitle="The One-Key Physical Lockbox"
-        analogyDescription="Imagine a steel lockbox with a single key. You put a secret letter inside and turn the key (Encrypt). Anyone holding an identical key can turn it back to open the box (Decrypt). If an attacker finds the locked box without the key, all they see is scrambled metal!"
-        bulletPoints={[
-          "Shared Secret: Both sender and receiver use the exact SAME key.",
-          "IV (Initialization Vector): A random coin toss so locking the same secret twice produces a different-looking box.",
-          "GCM Mode / AEAD Tag: A tamper-evident wax seal that breaks if an attacker tries to scratch or alter the box."
-        ]}
-      />
+      {!isQuestMode && (
+        <Eli5Banner
+          title="Understanding Symmetric Encryption"
+          analogyTitle="The One-Key Physical Lockbox"
+          analogyDescription="Imagine a steel lockbox with a single key. You put a secret letter inside and turn the key (Encrypt). Anyone holding an identical key can turn it back to open the box (Decrypt). If an attacker finds the locked box without the key, all they see is scrambled metal!"
+          bulletPoints={[
+            "Shared Secret: Both sender and receiver use the exact SAME key.",
+            "IV (Initialization Vector): A random coin toss so locking the same secret twice produces a different-looking box.",
+            "GCM Mode / AEAD Tag: A tamper-evident wax seal that breaks if an attacker tries to scratch or alter the box."
+          ]}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
@@ -334,8 +498,14 @@ console.log(\`Ciphertext: \${ciphertext}\`);`;
                   <textarea
                     value={encPlaintext}
                     onChange={(e) => setEncPlaintext(e.target.value)}
+                    placeholder="Type plaintext message to encrypt..."
                     rows={3}
-                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500 font-mono text-sm"
+                    disabled={isQuestMode && questStep !== 1}
+                    className={`w-full bg-cyber-darker border rounded-lg p-3 text-white focus:outline-none focus:border-blue-500 font-mono text-sm transition-all ${
+                      isQuestMode && questStep === 1 && encPlaintext.trim() !== 'CONFIDENTIAL'
+                        ? 'border-blue-500 ring-2 ring-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.3)] animate-pulse'
+                        : 'border-gray-800'
+                    }`}
                   />
                 </div>
 
@@ -352,7 +522,8 @@ console.log(\`Ciphertext: \${ciphertext}\`);`;
                           setEncMode('GCM');
                         }
                       }}
-                      className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm"
+                      disabled={isQuestMode}
+                      className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm font-semibold"
                     >
                       <option value="AES">AES (Block Cipher)</option>
                       <option value="ChaCha20">ChaCha20 (Stream Cipher)</option>
@@ -363,8 +534,8 @@ console.log(\`Ciphertext: \${ciphertext}\`);`;
                     <select
                       value={encMode}
                       onChange={(e) => setEncMode(e.target.value)}
-                      disabled={encAlg === 'ChaCha20'}
-                      className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm disabled:opacity-50"
+                      disabled={isQuestMode || encAlg === 'ChaCha20'}
+                      className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm disabled:opacity-50 font-semibold"
                     >
                       <option value="GCM">GCM (Authenticated)</option>
                       <option value="CBC">CBC (Chaining Mode)</option>
@@ -375,8 +546,8 @@ console.log(\`Ciphertext: \${ciphertext}\`);`;
                     <select
                       value={encKeySize}
                       onChange={(e) => setEncKeySize(Number(e.target.value))}
-                      disabled={encAlg === 'ChaCha20'}
-                      className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm disabled:opacity-50"
+                      disabled={isQuestMode || encAlg === 'ChaCha20'}
+                      className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm disabled:opacity-50 font-semibold"
                     >
                       <option value={128}>128-bit (16 Bytes)</option>
                       <option value={192}>192-bit (24 Bytes)</option>
@@ -410,7 +581,11 @@ console.log(\`Ciphertext: \${ciphertext}\`);`;
                 <button
                   onClick={handleEncrypt}
                   disabled={encLoading}
-                  className="w-full inline-flex items-center justify-center p-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                  className={`w-full inline-flex items-center justify-center p-2.5 rounded-lg text-white font-semibold transition-all ${
+                    isQuestMode && questStep === 1 && encPlaintext.trim() === 'CONFIDENTIAL' && encResult === null
+                      ? 'bg-blue-505 hover:bg-blue-500 ring-2 ring-blue-500/40 animate-pulse shadow-[0_0_15px_rgba(59,130,246,0.3)] cursor-pointer'
+                      : 'bg-blue-600 hover:bg-blue-550 cursor-pointer shadow-[0_0_15px_rgba(59,130,246,0.3)]'
+                  }`}
                 >
                   {encLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
                   Encrypt Plaintext
@@ -464,7 +639,11 @@ console.log(\`Ciphertext: \${ciphertext}\`);`;
                       </div>
 
                       {/* Byte Grid */}
-                      <div className="flex flex-wrap gap-1.5 p-3 bg-black/30 rounded border border-gray-900 max-h-36 overflow-y-auto font-mono text-xs">
+                      <div className={`flex flex-wrap gap-1.5 p-3 bg-black/30 rounded border max-h-36 overflow-y-auto font-mono text-xs transition-all ${
+                        isQuestMode && questStep === 2 && Object.keys(tamperMap).length === 0
+                          ? 'border-rose-500 ring-2 ring-rose-500/30 shadow-[0_0_12px_rgba(244,63,94,0.2)] animate-pulse'
+                          : 'border-gray-900'
+                      }`}>
                         {(() => {
                           const originalHex = encResult.ciphertext;
                           const bytes: string[] = [];
@@ -507,7 +686,11 @@ console.log(\`Ciphertext: \${ciphertext}\`);`;
                         <button
                           onClick={handleTamperDecrypt}
                           disabled={tamperLoading}
-                          className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded text-xs font-bold uppercase transition-colors cursor-pointer"
+                          className={`px-4 py-2 text-white rounded text-xs font-bold uppercase transition-all cursor-pointer ${
+                            isQuestMode && questStep === 2 && Object.keys(tamperMap).length > 0 && tamperDecError === null && tamperDecResult === null
+                              ? 'bg-rose-500 hover:bg-rose-400 ring-2 ring-rose-500/40 animate-pulse shadow-[0_0_15px_rgba(244,63,94,0.3)]'
+                              : 'bg-rose-600 hover:bg-rose-500'
+                          }`}
                         >
                           {tamperLoading ? 'Decrypting...' : 'Decrypt Tampered Payload'}
                         </button>
@@ -840,6 +1023,48 @@ console.log(\`Ciphertext: \${ciphertext}\`);`;
           }
         ]}
       />
+
+      {/* Quest Success Celebration Modal */}
+      {showQuestSuccessModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-cyber-dark border-2 border-blue-500/50 rounded-2xl p-8 max-w-md text-center shadow-[0_0_40px_rgba(59,130,246,0.15)] relative">
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 text-5xl">🏆</div>
+            
+            <h2 className="text-2xl font-extrabold text-white mb-2 font-mono">
+              Quest Completed!
+            </h2>
+            <p className="text-blue-400 text-xs font-mono font-semibold uppercase tracking-wider mb-4">
+              🎖️ Master of Symmetric Integrity
+            </p>
+            
+            <p className="text-xs text-gray-300 leading-relaxed mb-6">
+              Congratulations! You've successfully completed the Symmetric Encryption Laboratory Quest. You encrypted payloads using AES-GCM and witnessed how authentication tags protect ciphertext from byte-flipping attacks.
+            </p>
+
+            <div className="bg-cyber-darker p-4 rounded-xl border border-gray-850 mb-6 text-left space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Milestone reached:</span>
+                <span className="text-blue-400 font-bold">100% Completion</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Skills updated:</span>
+                <span className="text-white font-mono font-bold">AES-GCM, Byte Tampering Sandbox</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">XP Reward:</span>
+                <span className="text-amber-400 font-bold">+50 XP</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowQuestSuccessModal(false)}
+              className="w-full py-2.5 bg-blue-650 hover:bg-blue-600 text-white text-xs font-mono font-extrabold uppercase rounded-lg shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all cursor-pointer animate-pulse"
+            >
+              Back to Laboratories
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { CheckSquare, Edit3, ShieldCheck, ShieldAlert, Copy, Check, RefreshCw, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { CheckSquare, Edit3, ShieldCheck, ShieldAlert, Copy, Check, RefreshCw, AlertTriangle, Compass, CheckCircle2 } from 'lucide-react';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
@@ -45,6 +45,33 @@ const SignatureLab: React.FC = () => {
   const [sandPubKey, setSandPubKey] = useState('');
   const [sandValid, setSandValid] = useState<boolean | null>(null);
   const [sandChecking, setSandChecking] = useState(false);
+
+  // Quest/Tutorial Mode States
+  const [isQuestMode, setIsQuestMode] = useState(false);
+  const [questStep, setQuestStep] = useState(1);
+  const [showQuestSuccessModal, setShowQuestSuccessModal] = useState(false);
+
+  // Quest verification conditions
+  const isStep1Complete = useMemo(() => {
+    return isQuestMode && questStep === 1 && privKey !== '' && message.trim() === 'VERIFIED' && signature !== '';
+  }, [isQuestMode, questStep, privKey, message, signature]);
+
+  const isStep2Complete = useMemo(() => {
+    return isQuestMode && questStep === 2 && sandMsg === 'VERIFIED!' && sandValid === false;
+  }, [isQuestMode, questStep, sandMsg, sandValid]);
+
+  // Handle auto-routing and pre-filling variables per quest step
+  useEffect(() => {
+    if (isQuestMode) {
+      if (questStep === 1) {
+        setActiveTab('sign');
+        setMessage('VERIFIED');
+        setSignature('');
+      } else if (questStep === 2) {
+        setActiveTab('sandbox');
+      }
+    }
+  }, [isQuestMode, questStep]);
 
   const generateKeys = async () => {
     setKeyLoading(true);
@@ -158,34 +185,169 @@ const SignatureLab: React.FC = () => {
             Sign payloads with private keys, verify authenticity with public keys, and check integrity via the Sandbox.
           </p>
         </div>
-        <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
-          {(['sign', 'verify', 'sandbox', 'concepts'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => handleTabChange(tab)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${
-                activeTab === tab 
-                  ? 'bg-pink-500 text-white shadow-[0_0_10px_rgba(236,72,153,0.3)]' 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              if (isQuestMode) {
+                setIsQuestMode(false);
+                setQuestStep(1);
+              } else {
+                setIsQuestMode(true);
+                setQuestStep(1);
+              }
+            }}
+            className={`px-4 py-2 rounded-lg font-mono text-xs font-bold uppercase tracking-wider transition-all border flex items-center gap-2 cursor-pointer ${
+              isQuestMode
+                ? 'bg-pink-500 text-black border-pink-400 hover:bg-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.4)]'
+                : 'bg-cyber-darker text-pink-400 border-pink-500/20 hover:border-pink-500/50 hover:bg-pink-500/5'
+            }`}
+          >
+            <Compass className={`w-4 h-4 ${isQuestMode ? 'animate-spin-slow' : ''}`} />
+            {isQuestMode ? 'Exit Quest' : 'Start Guided Quest'}
+          </button>
+
+          <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
+            {(['sign', 'verify', 'sandbox', 'concepts'] as const).map((tab) => (
+              <button
+                key={tab}
+                disabled={isQuestMode}
+                onClick={() => !isQuestMode && handleTabChange(tab)}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                  activeTab === tab 
+                    ? 'bg-pink-500 text-white shadow-[0_0_10px_rgba(236,72,153,0.3)]' 
+                    : isQuestMode
+                    ? 'text-gray-650 cursor-not-allowed'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
+      {/* Guided Quest HUD when active */}
+      {isQuestMode && (
+        <div className="glass-panel p-5 bg-gradient-to-r from-pink-500/10 via-pink-500/5 to-gray-900/50 border border-pink-500/30 rounded-xl space-y-4 mb-8 shadow-[0_0_20px_rgba(236,72,153,0.05)] animate-fade-in">
+          <div className="flex items-center justify-between border-b border-gray-850/80 pb-3">
+            <div className="flex items-center gap-3">
+              <Compass className="w-6 h-6 text-pink-400 animate-spin-slow" />
+              <div>
+                <h2 className="text-base font-bold text-white uppercase tracking-wider font-mono">
+                  Guided Learning Quest: Digital Signatures & Tampering
+                </h2>
+                <p className="text-[10px] text-gray-400 font-mono">Step {questStep} of 2</p>
+              </div>
+            </div>
+            
+            {/* Step Progress Indicators */}
+            <div className="flex items-center gap-1.5">
+              {[1, 2].map((stepNum) => (
+                <div
+                  key={stepNum}
+                  className={`w-5 h-5 rounded-full border transition-all flex items-center justify-center text-[10px] font-bold font-mono ${
+                    questStep > stepNum
+                      ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+                      : questStep === stepNum
+                      ? 'bg-pink-500 border-pink-400 text-black shadow-[0_0_8px_rgba(236,72,153,0.3)] animate-pulse'
+                      : 'bg-gray-900 border-gray-800 text-gray-650'
+                  }`}
+                >
+                  {questStep > stepNum ? '✓' : stepNum}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            
+            {/* Instructions */}
+            <div className="lg:col-span-8 space-y-3">
+              {questStep === 1 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">
+                    Story: Signing Message Authenticity
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    Digital signatures use a private key to create a cryptographic seal on a message. Let's sign the message <span className="font-mono text-pink-300 font-bold bg-black/40 px-1.5 py-0.5 rounded border border-gray-850">VERIFIED</span>.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    <strong className="text-pink-400 font-semibold font-mono">Action Required:</strong> Click **"Generate Identity Keys"** first (if you haven't already), then type message as <span className="font-mono text-white bg-black/40 px-1.5 py-0.5 rounded">VERIFIED</span> and click **"Sign Message"** under the sign tab.
+                  </p>
+                </div>
+              )}
+
+              {questStep === 2 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">
+                    Story: Catching the Tampering
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    If an attacker intercepts the signed message and alters it, the validation will fail because the signature no longer matches the message. Let's simulate a tamper attack.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    <strong className="text-pink-400 font-semibold font-mono">Action Required:</strong> Under the **Integrity Tampering Sandbox** tab (automatically active), change Alice's message to <span className="font-mono text-white bg-black/40 px-1.5 py-0.5 rounded">VERIFIED!</span> (adding an exclamation mark) and watch verification fail.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Next Button */}
+            <div className="lg:col-span-4 flex flex-col items-center lg:items-end justify-center gap-3">
+              {((questStep === 1 && isStep1Complete) ||
+                (questStep === 2 && isStep2Complete)) ? (
+                <button
+                  onClick={() => {
+                    if (questStep < 2) {
+                      setQuestStep(prev => prev + 1);
+                    } else {
+                      updateLabProgress('signatures', 100);
+                      setShowQuestSuccessModal(true);
+                      setIsQuestMode(false);
+                      setQuestStep(1);
+                    }
+                  }}
+                  className="w-full lg:w-auto px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-extrabold uppercase rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.4)] animate-bounce cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {questStep === 2 ? 'Complete Quest!' : 'Advance to Next Step'}
+                </button>
+              ) : (
+                <div className="w-full text-center lg:text-right border border-gray-850 bg-cyber-darker/60 rounded-lg p-3 text-[11px] font-mono text-pink-400 animate-pulse">
+                  ⚠️ Step conditions incomplete. Follow instructions above.
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  setIsQuestMode(false);
+                  setQuestStep(1);
+                }}
+                className="text-[10px] font-mono text-gray-500 hover:text-gray-400 border-b border-gray-800 hover:border-gray-500 pb-0.5 transition-all cursor-pointer"
+              >
+                Exit Tutorial & Return to Sandbox
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* ELI5 Banner */}
-      <Eli5Banner
-        title="Understanding Digital Signatures"
-        analogyTitle="The Royal Wax Signet Ring"
-        analogyDescription="Imagine a king stamping his unique signet ring into hot wax on a letter (Signing with Private Key). Anyone in the kingdom can compare the wax imprint against the public royal coat of arms (Verifying with Public Key). If a messenger changes even ONE word of the letter, the stamp breaks and verification fails!"
-        bulletPoints={[
-          "Authenticity: Proves who wrote the message (only the key owner has the signet ring).",
-          "Integrity: Proves the letter was not altered in transit.",
-          "Non-Repudiation: The sender cannot claim 'I didn't send that letter'."
-        ]}
-      />
+      {!isQuestMode && (
+        <Eli5Banner
+          title="Understanding Digital Signatures"
+          analogyTitle="The Royal Wax Signet Ring"
+          analogyDescription="Imagine a king stamping his unique signet ring into hot wax on a letter (Signing with Private Key). Anyone in the kingdom can compare the wax imprint against the public royal coat of arms (Verifying with Public Key). If a messenger changes even ONE word of the letter, the stamp breaks and verification fails!"
+          bulletPoints={[
+            "Authenticity: Proves who wrote the message (only the key owner has the signet ring).",
+            "Integrity: Proves the letter was not altered in transit.",
+            "Non-Repudiation: The sender cannot claim 'I didn't send that letter'."
+          ]}
+        />
+      )}
 
       {/* Helper Keys Block */}
       <div className="glass-panel p-4 mb-6 bg-cyber-darker border border-pink-900/10 flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -196,7 +358,11 @@ const SignatureLab: React.FC = () => {
         <button
           onClick={generateKeys}
           disabled={keyLoading}
-          className="px-4 py-2 rounded border border-gray-700 bg-gray-800 text-white text-xs font-semibold hover:bg-gray-700 transition-colors inline-flex items-center"
+          className={`px-4 py-2 rounded border transition-all inline-flex items-center text-xs font-semibold cursor-pointer ${
+            isQuestMode && questStep === 1 && !pubKey
+              ? 'bg-pink-500 hover:bg-pink-400 text-black border-pink-400 ring-2 ring-pink-500/40 shadow-[0_0_15px_rgba(236,72,153,0.3)] animate-pulse'
+              : 'border-gray-700 bg-gray-800 text-white hover:bg-gray-700'
+          }`}
         >
           {keyLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin mr-2" /> : null}
           Generate Identity Keys
@@ -223,7 +389,12 @@ const SignatureLab: React.FC = () => {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     rows={3}
-                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-3 text-white font-mono text-sm focus:outline-none"
+                    disabled={isQuestMode && questStep !== 1}
+                    className={`w-full bg-cyber-darker border rounded-lg p-3 text-white font-mono text-sm focus:outline-none transition-all ${
+                      isQuestMode && questStep === 1 && pubKey && message.trim() !== 'VERIFIED'
+                        ? 'border-pink-500 ring-2 ring-pink-500/40 shadow-[0_0_15px_rgba(236,72,153,0.3)] animate-pulse'
+                        : 'border-gray-800'
+                    }`}
                   />
                 </div>
 
@@ -233,6 +404,7 @@ const SignatureLab: React.FC = () => {
                     value={privKey}
                     onChange={(e) => setPrivKey(e.target.value)}
                     rows={5}
+                    disabled={isQuestMode}
                     placeholder="Generate identity keys above or paste private key PEM..."
                     className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-3 text-white font-mono text-[10px]"
                   />
@@ -241,7 +413,11 @@ const SignatureLab: React.FC = () => {
                 <button
                   onClick={handleSign}
                   disabled={signLoading}
-                  className="w-full inline-flex items-center justify-center p-2.5 rounded bg-pink-650 hover:bg-pink-600 text-white font-semibold"
+                  className={`w-full inline-flex items-center justify-center p-2.5 rounded text-white font-semibold transition-all ${
+                    isQuestMode && questStep === 1 && pubKey && message.trim() === 'VERIFIED' && signature === ''
+                      ? 'bg-pink-550 hover:bg-pink-500 ring-2 ring-pink-500/40 animate-pulse shadow-[0_0_15px_rgba(236,72,153,0.3)] cursor-pointer'
+                      : 'bg-pink-650 hover:bg-pink-600 cursor-pointer'
+                  }`}
                 >
                   {signLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Edit3 className="w-4 h-4 mr-2" />}
                   Sign Message
@@ -345,7 +521,12 @@ const SignatureLab: React.FC = () => {
                     type="text"
                     value={sandMsg}
                     onChange={(e) => setSandMsg(e.target.value)}
-                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm focus:border-pink-500"
+                    disabled={isQuestMode && questStep !== 2}
+                    className={`w-full bg-cyber-darker border rounded-lg p-2.5 text-white font-mono text-sm focus:border-pink-500 transition-all ${
+                      isQuestMode && questStep === 2 && sandMsg !== 'VERIFIED!'
+                        ? 'border-pink-500 ring-2 ring-pink-500/40 shadow-[0_0_15px_rgba(236,72,153,0.3)] animate-pulse'
+                        : 'border-gray-800'
+                    }`}
                   />
                 </div>
 
@@ -356,7 +537,8 @@ const SignatureLab: React.FC = () => {
                       value={sandSig}
                       onChange={(e) => setSandSig(e.target.value)}
                       rows={4}
-                      className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-[9px] break-all"
+                      disabled={isQuestMode}
+                      className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-[9px] break-all animate-pulse"
                     />
                   </div>
                   <div>
@@ -474,6 +656,48 @@ const SignatureLab: React.FC = () => {
           }
         ]}
       />
+
+      {/* Quest Success Celebration Modal */}
+      {showQuestSuccessModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-cyber-dark border-2 border-pink-500/50 rounded-2xl p-8 max-w-md text-center shadow-[0_0_40px_rgba(236,72,153,0.15)] relative">
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 text-5xl">🏆</div>
+            
+            <h2 className="text-2xl font-extrabold text-white mb-2 font-mono">
+              Quest Completed!
+            </h2>
+            <p className="text-pink-400 text-xs font-mono font-semibold uppercase tracking-wider mb-4">
+              🎖️ Master of Signature Integrity
+            </p>
+            
+            <p className="text-xs text-gray-300 leading-relaxed mb-6">
+              Congratulations! You've successfully completed the Digital Signature Laboratory Quest. You signed custom messages using private keys and verified authenticity checks using the tampering sandbox.
+            </p>
+
+            <div className="bg-cyber-darker p-4 rounded-xl border border-gray-850 mb-6 text-left space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Milestone reached:</span>
+                <span className="text-pink-400 font-bold">100% Completion</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Skills updated:</span>
+                <span className="text-white font-mono font-bold">RSA Signatures, Tampering Sandbox</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">XP Reward:</span>
+                <span className="text-amber-400 font-bold">+50 XP</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowQuestSuccessModal(false)}
+              className="w-full py-2.5 bg-pink-650 hover:bg-pink-600 text-white text-xs font-mono font-extrabold uppercase rounded-lg shadow-[0_0_15px_rgba(236,72,153,0.3)] transition-all cursor-pointer animate-pulse"
+            >
+              Back to Laboratories
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

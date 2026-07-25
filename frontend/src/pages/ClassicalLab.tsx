@@ -36,6 +36,37 @@ const ClassicalLab: React.FC = () => {
     return missionInput.trim().toUpperCase() === TARGET_PLAINTEXT;
   }, [missionInput]);
 
+  // Quest/Tutorial Mode States
+  const [isQuestMode, setIsQuestMode] = useState(false);
+  const [questStep, setQuestStep] = useState(1);
+  const [questFrequencyAnswer, setQuestFrequencyAnswer] = useState<number | null>(null);
+  const [showQuestSuccessModal, setShowQuestSuccessModal] = useState(false);
+
+  // Handle auto-routing and pre-filling variables per quest step
+  useEffect(() => {
+    if (isQuestMode) {
+      if (questStep === 1) {
+        setActiveTab('encrypt');
+        setActiveCipher('caesar');
+        setPlaintext('ATTACK AT DAWN');
+        setCaesarShift(0);
+      } else if (questStep === 2) {
+        setActiveTab('decrypt');
+        setActiveCipher('caesar');
+        setDecCiphertext('DWWDFN DW GDZQ');
+        setDecCaesarShift(0);
+      } else if (questStep === 3) {
+        setActiveTab('analysis');
+        setQuestFrequencyAnswer(null);
+      } else if (questStep === 4) {
+        setActiveTab('encrypt');
+        setActiveCipher('vigenere');
+        setPlaintext('SECRET CODE');
+        setVigenereKey('');
+      }
+    }
+  }, [isQuestMode, questStep]);
+
   useEffect(() => {
     if (missionSolved) {
       updateLabProgress('classical', 60);
@@ -146,6 +177,23 @@ const ClassicalLab: React.FC = () => {
     return '';
   }, [decCiphertext, activeCipher, decCaesarShift, decVigenereKey]);
 
+  // Quest verification conditions
+  const isStep1Complete = useMemo(() => {
+    return isQuestMode && questStep === 1 && plaintext.trim().toUpperCase() === 'ATTACK AT DAWN' && caesarShift === 3;
+  }, [isQuestMode, questStep, plaintext, caesarShift]);
+
+  const isStep2Complete = useMemo(() => {
+    return isQuestMode && questStep === 2 && decCiphertext.trim().toUpperCase() === 'DWWDFN DW GDZQ' && decCaesarShift === 3 && decryptedText.trim().toUpperCase() === 'ATTACK AT DAWN';
+  }, [isQuestMode, questStep, decCiphertext, decCaesarShift, decryptedText]);
+
+  const isStep3Complete = useMemo(() => {
+    return isQuestMode && questStep === 3 && questFrequencyAnswer === 3;
+  }, [isQuestMode, questStep, questFrequencyAnswer]);
+
+  const isStep4Complete = useMemo(() => {
+    return isQuestMode && questStep === 4 && plaintext.trim().toUpperCase() === 'SECRET CODE' && activeCipher === 'vigenere' && vigenereKey === 'ROME';
+  }, [isQuestMode, questStep, plaintext, activeCipher, vigenereKey]);
+
   // Frequency Analysis calculations
   const ciphertextFrequencies = useMemo(() => {
     const letters = ciphertext.toUpperCase().replace(/[^A-Z]/g, '');
@@ -203,38 +251,229 @@ const ClassicalLab: React.FC = () => {
           </p>
         </div>
         
-        <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
-          {(['encrypt', 'decrypt', 'analysis', 'about'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => handleTabChange(tab)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
-                activeTab === tab 
-                  ? 'bg-amber-500 text-black font-bold shadow-[0_0_10px_rgba(245,158,11,0.3)]' 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              if (isQuestMode) {
+                setIsQuestMode(false);
+                setQuestStep(1);
+              } else {
+                setIsQuestMode(true);
+                setQuestStep(1);
+              }
+            }}
+            className={`px-4 py-2 rounded-lg font-mono text-xs font-bold uppercase tracking-wider transition-all border flex items-center gap-2 cursor-pointer ${
+              isQuestMode
+                ? 'bg-amber-500 text-black border-amber-400 hover:bg-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.4)]'
+                : 'bg-cyber-darker text-amber-400 border-amber-500/20 hover:border-amber-500/50 hover:bg-amber-500/5'
+            }`}
+          >
+            <Compass className={`w-4 h-4 ${isQuestMode ? 'animate-spin-slow' : ''}`} />
+            {isQuestMode ? 'Exit Quest' : 'Start Guided Quest'}
+          </button>
+
+          <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
+            {(['encrypt', 'decrypt', 'analysis', 'about'] as const).map((tab) => (
+              <button
+                key={tab}
+                disabled={isQuestMode}
+                onClick={() => !isQuestMode && handleTabChange(tab)}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                  activeTab === tab 
+                    ? 'bg-amber-500 text-black font-bold shadow-[0_0_10px_rgba(245,158,11,0.3)]' 
+                    : isQuestMode
+                    ? 'text-gray-600 cursor-not-allowed'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
+      {/* Guided Quest HUD when active */}
+      {isQuestMode && (
+        <div className="glass-panel p-5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-gray-900/50 border border-amber-500/30 rounded-xl space-y-4 mb-8 shadow-[0_0_20px_rgba(245,158,11,0.05)] animate-fade-in">
+          <div className="flex items-center justify-between border-b border-gray-850/80 pb-3">
+            <div className="flex items-center gap-3">
+              <Compass className="w-6 h-6 text-amber-400 animate-spin-slow" />
+              <div>
+                <h2 className="text-base font-bold text-white uppercase tracking-wider font-mono">
+                  Guided Learning Quest: Classical Ciphers
+                </h2>
+                <p className="text-[10px] text-gray-400 font-mono">Step {questStep} of 4</p>
+              </div>
+            </div>
+            
+            {/* Step Progress Indicators */}
+            <div className="flex items-center gap-1.5">
+              {[1, 2, 3, 4].map((stepNum) => (
+                <div
+                  key={stepNum}
+                  className={`w-5 h-5 rounded-full border transition-all flex items-center justify-center text-[10px] font-bold font-mono ${
+                    questStep > stepNum
+                      ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+                      : questStep === stepNum
+                      ? 'bg-amber-500 border-amber-400 text-black shadow-[0_0_8px_rgba(245,158,11,0.3)] animate-pulse'
+                      : 'bg-gray-900 border-gray-800 text-gray-600'
+                  }`}
+                >
+                  {questStep > stepNum ? '✓' : stepNum}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            
+            {/* Instructions */}
+            <div className="lg:col-span-8 space-y-3">
+              {questStep === 1 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                    Story: Julius Caesar's Secret Command
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    You are a general in Julius Caesar's legion. You must send a secret command: <span className="font-mono text-amber-300 font-bold bg-black/40 px-1.5 py-0.5 rounded border border-gray-850">ATTACK AT DAWN</span>.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    <strong className="text-amber-400 font-semibold font-mono">Action Required:</strong> Type <span className="font-mono text-white bg-black/40 px-1.5 py-0.5 rounded">ATTACK AT DAWN</span> into the Plaintext box and slide the Shift slider to <span className="font-mono text-white font-bold bg-black/40 px-1.5 py-0.5 rounded">3</span>.
+                  </p>
+                </div>
+              )}
+
+              {questStep === 2 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                    Story: Decoding on the Battlefield
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    Caesar's message was scrambled into <span className="font-mono text-amber-300 font-bold bg-black/40 px-1.5 py-0.5 rounded border border-gray-850">DWWDFN DW GDZQ</span>. The receiving general needs to decode it back into readable text.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    <strong className="text-amber-400 font-semibold font-mono">Action Required:</strong> Slide the Decrypt Decoder shift to <span className="font-mono text-white font-bold bg-black/40 px-1.5 py-0.5 rounded">3</span> in the active DECRYPT panel.
+                  </p>
+                </div>
+              )}
+
+              {questStep === 3 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                    Story: Spying & Frequency Analysis
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    Simple ciphers are easily cracked by looking at letter frequency counts. Scroll down to compare standard English peaks (Cyan) vs ciphertext peaks (Amber).
+                  </p>
+                  <div className="text-xs text-gray-300 bg-cyber-darker p-3 rounded-lg border border-gray-800 space-y-2">
+                    <p className="font-semibold text-white">Question: By how many positions did the peak shifts offset relative to standard English frequencies?</p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {[1, 3, 5, 13].map((val) => (
+                        <button
+                          key={val}
+                          onClick={() => setQuestFrequencyAnswer(val)}
+                          className={`px-3 py-1.5 rounded text-xs font-mono font-bold cursor-pointer transition-all border ${
+                            questFrequencyAnswer === val
+                              ? val === 3
+                                ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                                : 'bg-rose-500 border-rose-400 text-white shadow-[0_0_8px_rgba(239,68,68,0.3)] animate-shake'
+                              : 'bg-cyber-dark border-gray-800 hover:border-amber-500/50 text-gray-400 hover:text-white'
+                          }`}
+                        >
+                          {val === 13 ? '13 (ROT13)' : `${val} Positions`}
+                        </button>
+                      ))}
+                    </div>
+                    {questFrequencyAnswer !== null && questFrequencyAnswer !== 3 && (
+                      <p className="text-[10px] text-rose-400">Incorrect shift. Hint: Compare English peak 'E' with ciphertext peak 'H'.</p>
+                    )}
+                    {questFrequencyAnswer === 3 && (
+                      <p className="text-[10px] text-emerald-400">Correct! The standard peak 'E' (position 4) shifted by 3 positions forward to 'H' (position 7).</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {questStep === 4 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                    Story: Vigenère - Polyalphabetic Security
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    To prevent frequency analysis, we use a rotating keyword. This creates multiple shifting keys to flatten single letter peaks.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    <strong className="text-amber-400 font-semibold font-mono">Action Required:</strong> Type plaintext <span className="font-mono text-white bg-black/40 px-1.5 py-0.5 rounded">SECRET CODE</span> and set the Vigenère keyword key to <span className="font-mono text-white font-bold bg-black/40 px-1.5 py-0.5 rounded">ROME</span>.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Status & Next Button */}
+            <div className="lg:col-span-4 flex flex-col items-center lg:items-end justify-center gap-3">
+              {((questStep === 1 && isStep1Complete) ||
+                (questStep === 2 && isStep2Complete) ||
+                (questStep === 3 && isStep3Complete) ||
+                (questStep === 4 && isStep4Complete)) ? (
+                <button
+                  onClick={() => {
+                    if (questStep < 4) {
+                      setQuestStep(prev => prev + 1);
+                    } else {
+                      updateLabProgress('classical', 100);
+                      recordAlgorithmLearned('Caesar');
+                      recordAlgorithmLearned('Vigenere');
+                      recordAlgorithmLearned('ROT13');
+                      setShowQuestSuccessModal(true);
+                      setIsQuestMode(false);
+                      setQuestStep(1);
+                    }
+                  }}
+                  className="w-full lg:w-auto px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-extrabold uppercase rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.4)] animate-bounce cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {questStep === 4 ? 'Complete Quest!' : 'Advance to Next Step'}
+                </button>
+              ) : (
+                <div className="w-full text-center lg:text-right border border-gray-800 bg-cyber-darker/60 rounded-lg p-3 text-[11px] font-mono text-amber-500/80 animate-pulse">
+                  ⚠️ Step conditions incomplete. Follow the action instructions above to proceed.
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  setIsQuestMode(false);
+                  setQuestStep(1);
+                }}
+                className="text-[10px] font-mono text-gray-500 hover:text-gray-400 border-b border-gray-800 hover:border-gray-500 pb-0.5 transition-all cursor-pointer"
+              >
+                Exit Tutorial & Return to Sandbox
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* ELI5 Banner */}
-      <Eli5Banner
-        title="Understanding Classical Ciphers"
-        analogyTitle="The Decoder Ring & Secret Keyword"
-        analogyDescription="Imagine a physical slider (Caesar Ring) where sliding it shifts all letters of the alphabet forward. If you shift by 3, A becomes D, B becomes E. It is fast, but if an attacker tests all 25 shifts, they break it. Vigenère uses a keyword (e.g. 'KEY') so every letter shifts by a different amount, creating multiple rotating layers of protection!"
-        bulletPoints={[
-          "Caesar Cipher: Monoalphabetic substitution. Shift the entire alphabet by a fixed offset.",
-          "ROT13: Standard Caesar cipher with a shift key of 13. Encrypting twice returns the original text.",
-          "Vigenère Cipher: Polyalphabetic substitution. Rotates shift ciphers according to a repeating key word.",
-          "Frequency Attack: English letters like E, T, A occur most often. Simple ciphers leave this footprint visible!"
-        ]}
-      />
+      {!isQuestMode && (
+        <Eli5Banner
+          title="Understanding Classical Ciphers"
+          analogyTitle="The Decoder Ring & Secret Keyword"
+          analogyDescription="Imagine a physical slider (Caesar Ring) where sliding it shifts all letters of the alphabet forward. If you shift by 3, A becomes D, B becomes E. It is fast, but if an attacker tests all 25 shifts, they break it. Vigenère uses a keyword (e.g. 'KEY') so every letter shifts by a different amount, creating multiple rotating layers of protection!"
+          bulletPoints={[
+            "Caesar Cipher: Monoalphabetic substitution. Shift the entire alphabet by a fixed offset.",
+            "ROT13: Standard Caesar cipher with a shift key of 13. Encrypting twice returns the original text.",
+            "Vigenère Cipher: Polyalphabetic substitution. Rotates shift ciphers according to a repeating key word.",
+            "Frequency Attack: English letters like E, T, A occur most often. Simple ciphers leave this footprint visible!"
+          ]}
+        />
+      )}
 
       {/* Cyber Agent Mission Tracker */}
-      <div className="glass-panel p-5 bg-gradient-to-r from-amber-500/5 to-amber-600/5 border border-amber-500/10 rounded-xl space-y-4 mb-8">
+      {!isQuestMode && (
+        <div className="glass-panel p-5 bg-gradient-to-r from-amber-500/5 to-amber-600/5 border border-amber-500/10 rounded-xl space-y-4 mb-8">
         <div className="flex items-center justify-between border-b border-gray-800/60 pb-3">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-amber-400" />
@@ -321,6 +560,7 @@ const ClassicalLab: React.FC = () => {
 
         </div>
       </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
@@ -336,6 +576,7 @@ const ClassicalLab: React.FC = () => {
                   {(['caesar', 'vigenere', 'rot13'] as const).map((cipher) => (
                     <button
                       key={cipher}
+                      disabled={isQuestMode}
                       onClick={() => {
                         setActiveCipher(cipher);
                         if (cipher === 'rot13') setCaesarShift(13);
@@ -343,6 +584,8 @@ const ClassicalLab: React.FC = () => {
                       className={`px-3 py-1 rounded transition-all cursor-pointer font-bold ${
                         activeCipher === cipher 
                           ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' 
+                          : isQuestMode
+                          ? 'text-gray-600 cursor-not-allowed'
                           : 'text-gray-500 hover:text-gray-300'
                       }`}
                     >
@@ -362,13 +605,24 @@ const ClassicalLab: React.FC = () => {
                     value={plaintext}
                     onChange={(e) => setPlaintext(e.target.value.toUpperCase())}
                     rows={3}
-                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-3 text-white focus:outline-none focus:border-amber-500 font-mono text-sm uppercase"
+                    disabled={isQuestMode && questStep !== 1 && questStep !== 4}
+                    className={`w-full bg-cyber-darker border rounded-lg p-3 text-white focus:outline-none focus:border-amber-500 font-mono text-sm uppercase transition-all ${
+                      isQuestMode && questStep === 1 && plaintext.trim().toUpperCase() !== 'ATTACK AT DAWN'
+                        ? 'border-amber-500 ring-2 ring-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse'
+                        : isQuestMode && questStep === 4 && plaintext.trim().toUpperCase() !== 'SECRET CODE'
+                        ? 'border-amber-500 ring-2 ring-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse'
+                        : 'border-gray-800'
+                    }`}
                   />
                 </div>
 
                 {/* Cipher specific inputs */}
                 {activeCipher === 'caesar' && (
-                  <div className="bg-cyber-darker p-4 rounded-lg border border-gray-800 space-y-3">
+                  <div className={`bg-cyber-darker p-4 rounded-lg border transition-all ${
+                    isQuestMode && questStep === 1 && plaintext.trim().toUpperCase() === 'ATTACK AT DAWN' && caesarShift !== 3
+                      ? 'border-amber-500 ring-2 ring-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse'
+                      : 'border-gray-800'
+                  } space-y-3`}>
                     <div className="flex justify-between items-center text-xs font-mono text-gray-400">
                       <span>CAESAR SHIFT PARAMETER:</span>
                       <span className="text-amber-400 font-bold text-sm bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20">
@@ -379,6 +633,7 @@ const ClassicalLab: React.FC = () => {
                       type="range"
                       min="0"
                       max="25"
+                      disabled={isQuestMode && questStep !== 1}
                       value={caesarShift}
                       onChange={(e) => setCaesarShift(parseInt(e.target.value))}
                       className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
@@ -392,7 +647,11 @@ const ClassicalLab: React.FC = () => {
                 )}
 
                 {activeCipher === 'vigenere' && (
-                  <div className="bg-cyber-darker p-4 rounded-lg border border-gray-800 space-y-3">
+                  <div className={`bg-cyber-darker p-4 rounded-lg border transition-all ${
+                    isQuestMode && questStep === 4 && plaintext.trim().toUpperCase() === 'SECRET CODE' && vigenereKey !== 'ROME'
+                      ? 'border-amber-500 ring-2 ring-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse'
+                      : 'border-gray-800'
+                  } space-y-3`}>
                     <label className="block text-xs font-mono uppercase text-gray-400 flex items-center">
                       Vigenère Substitution Keyword
                       <Eli5Tooltip term="Keyword" simpleExplanation="A word used to shift letters dynamically. E.g. key 'KEY' means 1st letter shifts by K (10), 2nd by E (4), 3rd by Y (24), repeating." analogy="Using a pattern of shifts instead of just one single offset." />
@@ -400,6 +659,7 @@ const ClassicalLab: React.FC = () => {
                     <input
                       type="text"
                       value={vigenereKey}
+                      disabled={isQuestMode && questStep !== 4}
                       onChange={(e) => setVigenereKey(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''))}
                       placeholder="e.g. SECRET"
                       className="w-full bg-cyber-dark border border-gray-850 rounded-lg p-2.5 text-white focus:outline-none focus:border-amber-500 font-mono text-sm uppercase"
@@ -441,6 +701,7 @@ const ClassicalLab: React.FC = () => {
                   {(['caesar', 'vigenere', 'rot13'] as const).map((cipher) => (
                     <button
                       key={cipher}
+                      disabled={isQuestMode}
                       onClick={() => {
                         setActiveCipher(cipher);
                         if (cipher === 'rot13') setDecCaesarShift(13);
@@ -448,6 +709,8 @@ const ClassicalLab: React.FC = () => {
                       className={`px-3 py-1 rounded transition-all cursor-pointer font-bold ${
                         activeCipher === cipher 
                           ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' 
+                          : isQuestMode
+                          ? 'text-gray-600 cursor-not-allowed'
                           : 'text-gray-500 hover:text-gray-300'
                       }`}
                     >
@@ -466,14 +729,23 @@ const ClassicalLab: React.FC = () => {
                     value={decCiphertext}
                     onChange={(e) => setDecCiphertext(e.target.value.toUpperCase())}
                     rows={3}
+                    disabled={isQuestMode && questStep !== 2}
                     placeholder="PASTE SCRAMBLED CIPHERTEXT HERE..."
-                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-3 text-white focus:outline-none focus:border-amber-500 font-mono text-sm uppercase"
+                    className={`w-full bg-cyber-darker border rounded-lg p-3 text-white focus:outline-none focus:border-amber-500 font-mono text-sm uppercase transition-all ${
+                      isQuestMode && questStep === 2 && decCiphertext.trim().toUpperCase() !== 'DWWDFN DW GDZQ'
+                        ? 'border-amber-500 ring-2 ring-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse'
+                        : 'border-gray-800'
+                    }`}
                   />
                 </div>
 
                 {/* Decrypt parameters */}
                 {activeCipher === 'caesar' && (
-                  <div className="bg-cyber-darker p-4 rounded-lg border border-gray-800 space-y-3">
+                  <div className={`bg-cyber-darker p-4 rounded-lg border transition-all ${
+                    isQuestMode && questStep === 2 && decCaesarShift !== 3
+                      ? 'border-amber-500 ring-2 ring-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse'
+                      : 'border-gray-800'
+                  } space-y-3`}>
                     <div className="flex justify-between items-center text-xs font-mono text-gray-400">
                       <span>DECRYPT SHIFT DECODER:</span>
                       <span className="text-amber-400 font-bold text-sm bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20">
@@ -484,6 +756,7 @@ const ClassicalLab: React.FC = () => {
                       type="range"
                       min="0"
                       max="25"
+                      disabled={isQuestMode && questStep !== 2}
                       value={decCaesarShift}
                       onChange={(e) => setDecCaesarShift(parseInt(e.target.value))}
                       className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
@@ -669,6 +942,48 @@ const ClassicalLab: React.FC = () => {
           }
         ]}
       />
+
+      {/* Quest Success Celebration Modal */}
+      {showQuestSuccessModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-cyber-dark border-2 border-emerald-500/50 rounded-2xl p-8 max-w-md text-center shadow-[0_0_40px_rgba(16,185,129,0.15)] relative">
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 text-5xl">🏆</div>
+            
+            <h2 className="text-2xl font-extrabold text-white mb-2 font-mono">
+              Quest Completed!
+            </h2>
+            <p className="text-emerald-400 text-xs font-mono font-semibold uppercase tracking-wider mb-4">
+              🎖️ Master of Classical Ciphers
+            </p>
+            
+            <p className="text-xs text-gray-300 leading-relaxed mb-6">
+              Congratulations! You've successfully completed the Classical Ciphers Quest. You learned how to encrypt/decrypt using fixed offset ciphers, observed the vulnerability of frequency peaks, and successfully deployed polyalphabetic keyword protection.
+            </p>
+
+            <div className="bg-cyber-darker p-4 rounded-xl border border-gray-850 mb-6 text-left space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Milestone reached:</span>
+                <span className="text-emerald-400 font-bold">100% Completion</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Skills updated:</span>
+                <span className="text-white font-mono font-bold">Caesar, Vigenère, ROT13</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">XP Reward:</span>
+                <span className="text-amber-400 font-bold">+50 XP</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowQuestSuccessModal(false)}
+              className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-extrabold uppercase rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all cursor-pointer"
+            >
+              Back to Laboratories
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

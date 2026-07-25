@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Lock, ShieldCheck, ShieldAlert, Check, X, RefreshCw, Eye, EyeOff, Play, ShieldEllipsis, Info 
+  Lock, ShieldCheck, ShieldAlert, Check, X, RefreshCw, Eye, EyeOff, Play, ShieldEllipsis, Info, Compass, CheckCircle2 
 } from 'lucide-react';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
@@ -40,6 +40,44 @@ const PasswordLab: React.FC = () => {
   const [simState, setSimState] = useState<'idle' | 'hashing' | 'cracking' | 'success' | 'protected'>('idle');
   const [simLogs, setSimLogs] = useState<string[]>([]);
   const [useSalt, setUseSalt] = useState(false);
+
+  // Quest/Tutorial Mode States
+  const [isQuestMode, setIsQuestMode] = useState(false);
+  const [questStep, setQuestStep] = useState(1);
+  const [questPepperAnswer, setQuestPepperAnswer] = useState<'salt' | 'pepper' | 'hash' | null>(null);
+  const [showQuestSuccessModal, setShowQuestSuccessModal] = useState(false);
+
+  // Quest verification conditions
+  const isStep1Complete = useMemo(() => {
+    return isQuestMode && questStep === 1 && strengthResult?.entropy >= 50;
+  }, [isQuestMode, questStep, strengthResult]);
+
+  const isStep2Complete = useMemo(() => {
+    return isQuestMode && questStep === 2 && hashAlg === 'argon2id' && hashResult !== null;
+  }, [isQuestMode, questStep, hashAlg, hashResult]);
+
+  const isStep3Complete = useMemo(() => {
+    return isQuestMode && questStep === 3 && questPepperAnswer === 'pepper';
+  }, [isQuestMode, questStep, questPepperAnswer]);
+
+  // Handle auto-routing and pre-filling variables per quest step
+  useEffect(() => {
+    if (isQuestMode) {
+      if (questStep === 1) {
+        setActiveTab('strength');
+        setPasswordInput('');
+      } else if (questStep === 2) {
+        setActiveTab('hash');
+        setHashAlg('argon2id');
+        setHashPassword('SuperSecureP@ssw0rd!');
+        setHashSalt('');
+        setHashResult(null);
+      } else if (questStep === 3) {
+        setActiveTab('salts');
+        setQuestPepperAnswer(null);
+      }
+    }
+  }, [isQuestMode, questStep]);
 
   useEffect(() => {
     if (activeTab === 'strength') {
@@ -173,34 +211,207 @@ const PasswordLab: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
-          {(['strength', 'hash', 'salts', 'standards'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => handleTabChange(tab)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${
-                activeTab === tab 
-                  ? 'bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]' 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              if (isQuestMode) {
+                setIsQuestMode(false);
+                setQuestStep(1);
+              } else {
+                setIsQuestMode(true);
+                setQuestStep(1);
+              }
+            }}
+            className={`px-4 py-2 rounded-lg font-mono text-xs font-bold uppercase tracking-wider transition-all border flex items-center gap-2 cursor-pointer ${
+              isQuestMode
+                ? 'bg-purple-500 text-black border-purple-400 hover:bg-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.4)]'
+                : 'bg-cyber-darker text-purple-400 border-purple-500/20 hover:border-purple-500/50 hover:bg-purple-500/5'
+            }`}
+          >
+            <Compass className={`w-4 h-4 ${isQuestMode ? 'animate-spin-slow' : ''}`} />
+            {isQuestMode ? 'Exit Quest' : 'Start Guided Quest'}
+          </button>
+
+          <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
+            {(['strength', 'hash', 'salts', 'standards'] as const).map((tab) => (
+              <button
+                key={tab}
+                disabled={isQuestMode}
+                onClick={() => !isQuestMode && handleTabChange(tab)}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                  activeTab === tab 
+                    ? 'bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]' 
+                    : isQuestMode
+                    ? 'text-gray-650 cursor-not-allowed'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
+      {/* Guided Quest HUD when active */}
+      {isQuestMode && (
+        <div className="glass-panel p-5 bg-gradient-to-r from-purple-500/10 via-purple-500/5 to-gray-900/50 border border-purple-500/30 rounded-xl space-y-4 mb-8 shadow-[0_0_20px_rgba(168,85,247,0.05)] animate-fade-in">
+          <div className="flex items-center justify-between border-b border-gray-850/80 pb-3">
+            <div className="flex items-center gap-3">
+              <Compass className="w-6 h-6 text-purple-400 animate-spin-slow" />
+              <div>
+                <h2 className="text-base font-bold text-white uppercase tracking-wider font-mono">
+                  Guided Learning Quest: Password Security & Salts
+                </h2>
+                <p className="text-[10px] text-gray-400 font-mono">Step {questStep} of 3</p>
+              </div>
+            </div>
+            
+            {/* Step Progress Indicators */}
+            <div className="flex items-center gap-1.5">
+              {[1, 2, 3].map((stepNum) => (
+                <div
+                  key={stepNum}
+                  className={`w-5 h-5 rounded-full border transition-all flex items-center justify-center text-[10px] font-bold font-mono ${
+                    questStep > stepNum
+                      ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+                      : questStep === stepNum
+                      ? 'bg-purple-500 border-purple-400 text-white shadow-[0_0_8px_rgba(168,85,247,0.3)] animate-pulse'
+                      : 'bg-gray-900 border-gray-800 text-gray-650'
+                  }`}
+                >
+                  {questStep > stepNum ? '✓' : stepNum}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            
+            {/* Instructions */}
+            <div className="lg:col-span-8 space-y-3">
+              {questStep === 1 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+                    Story: The Password Entropy Bar
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    Password security is measured in mathematical bits of entropy. A password with <span className="font-mono text-purple-300 font-bold bg-black/40 px-1.5 py-0.5 rounded border border-gray-850">&gt;= 50 bits</span> of entropy is considered resilient against basic attacks.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    <strong className="text-purple-400 font-semibold font-mono">Action Required:</strong> Type a strong password containing letters, numbers, and symbols into the Password box until the Entropy score reaches **at least 50 bits**.
+                  </p>
+                </div>
+              )}
+
+              {questStep === 2 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+                    Story: Memory-Hard KDFs
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    Standard hashes are too fast, letting attackers test billions of passwords quickly. Modern Key Derivation Functions like **Argon2id** slow them down using hardware memory.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    <strong className="text-purple-400 font-semibold font-mono">Action Required:</strong> Select **Argon2id** (Memory Hard) as the hashing function and click the **"Derive Secure Password Hash"** button under the hash tab.
+                  </p>
+                </div>
+              )}
+
+              {questStep === 3 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+                    Story: Salts & Peppers Architecture
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    Salts are stored in the database to stop rainbow table attacks. Peppers are system-wide secrets stored outside the database.
+                  </p>
+                  <div className="text-xs text-gray-305 bg-cyber-darker p-3 rounded-lg border border-gray-800 space-y-2">
+                    <p className="font-semibold text-white">Question: Which defense mechanism is a system-wide secret stored separately in configs or key managers, protecting hashes even if the database leaks?</p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {['salt', 'pepper', 'hash'].map((val) => (
+                        <button
+                          key={val}
+                          onClick={() => setQuestPepperAnswer(val as any)}
+                          className={`px-3 py-1.5 rounded text-xs font-mono font-bold cursor-pointer transition-all border ${
+                            questPepperAnswer === val
+                              ? val === 'pepper'
+                                ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                                : 'bg-rose-500 border-rose-400 text-white shadow-[0_0_8px_rgba(239,68,68,0.3)] animate-shake'
+                              : 'bg-cyber-dark border-gray-800 hover:border-purple-500/50 text-gray-400 hover:text-white'
+                          }`}
+                        >
+                          {val.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                    {questPepperAnswer !== null && questPepperAnswer !== 'pepper' && (
+                      <p className="text-[10px] text-rose-450">Incorrect. Hint: Salts are public and saved next to the hash in the DB. This secret is kept out-of-db.</p>
+                    )}
+                    {questPepperAnswer === 'pepper' && (
+                      <p className="text-[10px] text-emerald-400">Correct! The pepper is stored in environment files or key vaults, which prevents hackers from brute forcing even with a full DB dump.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Next Button */}
+            <div className="lg:col-span-4 flex flex-col items-center lg:items-end justify-center gap-3">
+              {((questStep === 1 && isStep1Complete) ||
+                (questStep === 2 && isStep2Complete) ||
+                (questStep === 3 && isStep3Complete)) ? (
+                <button
+                  onClick={() => {
+                    if (questStep < 3) {
+                      setQuestStep(prev => prev + 1);
+                    } else {
+                      updateLabProgress('passwords', 100);
+                      setShowQuestSuccessModal(true);
+                      setIsQuestMode(false);
+                      setQuestStep(1);
+                    }
+                  }}
+                  className="w-full lg:w-auto px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-extrabold uppercase rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.4)] animate-bounce cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {questStep === 3 ? 'Complete Quest!' : 'Advance to Next Step'}
+                </button>
+              ) : (
+                <div className="w-full text-center lg:text-right border border-gray-850 bg-cyber-darker/60 rounded-lg p-3 text-[11px] font-mono text-purple-400 animate-pulse">
+                  ⚠️ Step conditions incomplete. Follow instructions above.
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  setIsQuestMode(false);
+                  setQuestStep(1);
+                }}
+                className="text-[10px] font-mono text-gray-500 hover:text-gray-400 border-b border-gray-800 hover:border-gray-500 pb-0.5 transition-all cursor-pointer"
+              >
+                Exit Tutorial & Return to Sandbox
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* ELI5 Banner */}
-      <Eli5Banner
-        title="Understanding Password Security & Salts"
-        analogyTitle="Unique Seasoning for Every Dish"
-        analogyDescription="Imagine storing cake recipes in a public cookbook. If two people bake chocolate cake (password '123456'), their cakes look identical! A 'Salt' is a random secret ingredient added to each recipe so even identical cakes come out looking totally unique. Attackers can't use pre-printed lookup cheat sheets (Rainbow Tables)!"
-        bulletPoints={[
-          "Password Entropy: How unpredictable your password is (like rolling 20 dice vs 2 dice).",
-          "Cryptographic Salt: Random noise added to passwords to prevent lookup attacks.",
-          "Argon2id / bcrypt: Slow 'memory-hard' functions designed to burn attacker GPU processing power."
-        ]}
-      />
+      {!isQuestMode && (
+        <Eli5Banner
+          title="Understanding Password Security & Salts"
+          analogyTitle="The Master Safe Combination"
+          analogyDescription="Imagine storing safe combinations in a public ledger. If you just store the combinations, an attacker tests common codes (Dictionary Attack) and matches them instantly. A SALT is unique noise added to each combination before storing it. Even if two safes share '1234', their ledger entries look 100% different, forcing attackers to guess combination-by-combination rather than cracking everyone at once!"
+          bulletPoints={[
+            "Entropy: The mathematical complexity of your password. More characters and sets mean exponentially higher security.",
+            "Cryptographic Salt: Random unique data appended to passwords to stop rainbow tables.",
+            "Password Pepper: A global secret key kept out-of-db. Protects credentials even during system intrusion.",
+            "Slow KDFs: Modern functions (bcrypt, Argon2id) run intentionally slow to defeat GPU brute force rigs."
+          ]}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
@@ -233,7 +444,12 @@ const PasswordLab: React.FC = () => {
                       value={passwordInput}
                       onChange={(e) => setPasswordInput(e.target.value)}
                       placeholder="Type a password..."
-                      className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-3 pr-10 text-white focus:outline-none focus:border-purple-500 font-mono text-sm"
+                      disabled={isQuestMode && questStep !== 1}
+                      className={`w-full bg-cyber-darker border rounded-lg p-3 pr-10 text-white focus:outline-none focus:border-purple-500 font-mono text-sm transition-all ${
+                        isQuestMode && questStep === 1 && (!strengthResult || strengthResult.entropy < 50)
+                          ? 'border-purple-500 ring-2 ring-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.3)] animate-pulse'
+                          : 'border-gray-800'
+                      }`}
                     />
                     <button
                       type="button"
@@ -332,7 +548,12 @@ const PasswordLab: React.FC = () => {
                       type="text"
                       value={hashPassword}
                       onChange={(e) => setHashPassword(e.target.value)}
-                      className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm"
+                      disabled={isQuestMode && questStep !== 2}
+                      className={`w-full bg-cyber-darker border rounded-lg p-2.5 text-white font-mono text-sm transition-all ${
+                        isQuestMode && questStep === 2 && hashPassword === ''
+                          ? 'border-purple-500 ring-2 ring-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.3)] animate-pulse'
+                          : 'border-gray-800'
+                      }`}
                     />
                   </div>
                   <div>
@@ -340,7 +561,8 @@ const PasswordLab: React.FC = () => {
                     <select
                       value={hashAlg}
                       onChange={(e) => setHashAlg(e.target.value)}
-                      className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm"
+                      disabled={isQuestMode}
+                      className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm font-semibold"
                     >
                       <option value="bcrypt">bcrypt (Slow Blowfish)</option>
                       <option value="argon2id">Argon2id (Memory Hard)</option>
@@ -376,7 +598,11 @@ const PasswordLab: React.FC = () => {
                 <button
                   onClick={handleHashPassword}
                   disabled={hashLoading}
-                  className="w-full inline-flex items-center justify-center p-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold"
+                  className={`w-full inline-flex items-center justify-center p-2.5 rounded-lg text-white font-semibold transition-all ${
+                    isQuestMode && questStep === 2 && hashAlg === 'argon2id' && hashResult === null
+                      ? 'bg-purple-600 hover:bg-purple-500 ring-2 ring-purple-500/40 animate-pulse shadow-[0_0_15px_rgba(168,85,247,0.3)] cursor-pointer'
+                      : 'bg-purple-600 hover:bg-purple-500 cursor-pointer'
+                  }`}
                 >
                   {hashLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                   Derive Secure Password Hash
@@ -557,6 +783,48 @@ const PasswordLab: React.FC = () => {
           }
         ]}
       />
+
+      {/* Quest Success Celebration Modal */}
+      {showQuestSuccessModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-cyber-dark border-2 border-purple-500/50 rounded-2xl p-8 max-w-md text-center shadow-[0_0_40px_rgba(168,85,247,0.15)] relative">
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 text-5xl">🏆</div>
+            
+            <h2 className="text-2xl font-extrabold text-white mb-2 font-mono">
+              Quest Completed!
+            </h2>
+            <p className="text-purple-400 text-xs font-mono font-semibold uppercase tracking-wider mb-4">
+              🎖️ Master of Password Defenses
+            </p>
+            
+            <p className="text-xs text-gray-300 leading-relaxed mb-6">
+              Congratulations! You've successfully completed the Password Security Laboratory Quest. You analyzed password strength entropy, derived slow memory-hard Argon2id hashes, and mastered database salt & pepper secrets.
+            </p>
+
+            <div className="bg-cyber-darker p-4 rounded-xl border border-gray-850 mb-6 text-left space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Milestone reached:</span>
+                <span className="text-purple-400 font-bold">100% Completion</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Skills updated:</span>
+                <span className="text-white font-mono font-bold">Entropy, Argon2id, Salts & Peppers</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">XP Reward:</span>
+                <span className="text-amber-400 font-bold">+50 XP</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowQuestSuccessModal(false)}
+              className="w-full py-2.5 bg-purple-650 hover:bg-purple-600 text-white text-xs font-mono font-extrabold uppercase rounded-lg shadow-[0_0_15px_rgba(168,85,247,0.3)] transition-all cursor-pointer animate-pulse"
+            >
+              Back to Laboratories
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

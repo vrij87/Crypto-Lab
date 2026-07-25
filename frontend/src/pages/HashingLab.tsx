@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Hash, Copy, Check, RefreshCw, BarChart2, ShieldAlert, Code } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Hash, Copy, Check, RefreshCw, BarChart2, ShieldAlert, Code, Compass, CheckCircle2 } from 'lucide-react';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
@@ -79,6 +79,45 @@ console.log(\`${genAlg} Digest: \${hash}\`);
   const [benchInput, setBenchInput] = useState('Benchmark Input Data');
   const [benchData, setBenchData] = useState<any>(null);
   const [benchLoading, setBenchLoading] = useState(false);
+
+  // Quest/Tutorial Mode States
+  const [isQuestMode, setIsQuestMode] = useState(false);
+  const [questStep, setQuestStep] = useState(1);
+  const [showQuestSuccessModal, setShowQuestSuccessModal] = useState(false);
+
+  // Quest verification conditions
+  const isStep1Complete = useMemo(() => {
+    return isQuestMode && questStep === 1 && genInput.trim() === 'blockchain' && genAlg === 'SHA-256' && genOutput !== '';
+  }, [isQuestMode, questStep, genInput, genAlg, genOutput]);
+
+  const isStep2Complete = useMemo(() => {
+    return isQuestMode && questStep === 2 && compInput1.trim() === 'bitcoin' && compInput2.trim() === 'Bitcoin' && compAlg === 'SHA-256' && compHash1 !== '' && compHash2 !== '';
+  }, [isQuestMode, questStep, compInput1, compInput2, compAlg, compHash1, compHash2]);
+
+  const isStep3Complete = useMemo(() => {
+    return isQuestMode && questStep === 3 && avaInput1.trim() === 'crypto' && avaInput2.trim() === 'crypt0' && avaAlg === 'SHA-256' && avaResult !== null;
+  }, [isQuestMode, questStep, avaInput1, avaInput2, avaAlg, avaResult]);
+
+  // Handle auto-routing and pre-filling variables per quest step
+  useEffect(() => {
+    if (isQuestMode) {
+      if (questStep === 1) {
+        setActiveTab('generator');
+        setGenAlg('SHA-256');
+        setGenInput('blockchain');
+      } else if (questStep === 2) {
+        setActiveTab('compare');
+        setCompAlg('SHA-256');
+        setCompInput1('bitcoin');
+        setCompInput2('Bitcoin');
+      } else if (questStep === 3) {
+        setActiveTab('avalanche');
+        setAvaAlg('SHA-256');
+        setAvaInput1('crypto');
+        setAvaInput2('crypt0');
+      }
+    }
+  }, [isQuestMode, questStep]);
 
   // Auto hash generation for Generator tab
   useEffect(() => {
@@ -186,39 +225,187 @@ console.log(\`${genAlg} Digest: \${hash}\`);
             Hashing Laboratory
           </h1>
           <p className="mt-1 text-gray-400 text-sm">
-            Learn mathematical one-way functions, test hashes, compare strings, and explore bit propagation.
+            Learn mathematical one-way functions, test ciphers, compare strings, and explore bit propagation.
           </p>
         </div>
         
-        {/* Navigation Tabs */}
-        <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
-          {(['generator', 'compare', 'avalanche', 'benchmark'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => handleTabChange(tab)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${
-                activeTab === tab 
-                  ? 'bg-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.3)]' 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              if (isQuestMode) {
+                setIsQuestMode(false);
+                setQuestStep(1);
+              } else {
+                setIsQuestMode(true);
+                setQuestStep(1);
+              }
+            }}
+            className={`px-4 py-2 rounded-lg font-mono text-xs font-bold uppercase tracking-wider transition-all border flex items-center gap-2 cursor-pointer ${
+              isQuestMode
+                ? 'bg-cyan-500 text-black border-cyan-400 hover:bg-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.4)]'
+                : 'bg-cyber-darker text-cyan-400 border-cyan-500/20 hover:border-cyan-500/50 hover:bg-cyan-500/5'
+            }`}
+          >
+            <Compass className={`w-4 h-4 ${isQuestMode ? 'animate-spin-slow' : ''}`} />
+            {isQuestMode ? 'Exit Quest' : 'Start Guided Quest'}
+          </button>
+
+          <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
+            {(['generator', 'compare', 'avalanche', 'benchmark'] as const).map((tab) => (
+              <button
+                key={tab}
+                disabled={isQuestMode}
+                onClick={() => !isQuestMode && handleTabChange(tab)}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                  activeTab === tab 
+                    ? 'bg-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.3)]' 
+                    : isQuestMode
+                    ? 'text-gray-650 cursor-not-allowed'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
+      {/* Guided Quest HUD when active */}
+      {isQuestMode && (
+        <div className="glass-panel p-5 bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-gray-900/50 border border-cyan-500/30 rounded-xl space-y-4 mb-8 shadow-[0_0_20px_rgba(6,182,212,0.05)] animate-fade-in">
+          <div className="flex items-center justify-between border-b border-gray-850/80 pb-3">
+            <div className="flex items-center gap-3">
+              <Compass className="w-6 h-6 text-cyan-400 animate-spin-slow" />
+              <div>
+                <h2 className="text-base font-bold text-white uppercase tracking-wider font-mono">
+                  Guided Learning Quest: Cryptographic Hashing
+                </h2>
+                <p className="text-[10px] text-gray-400 font-mono">Step {questStep} of 3</p>
+              </div>
+            </div>
+            
+            {/* Step Progress Indicators */}
+            <div className="flex items-center gap-1.5">
+              {[1, 2, 3].map((stepNum) => (
+                <div
+                  key={stepNum}
+                  className={`w-5 h-5 rounded-full border transition-all flex items-center justify-center text-[10px] font-bold font-mono ${
+                    questStep > stepNum
+                      ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+                      : questStep === stepNum
+                      ? 'bg-cyan-500 border-cyan-400 text-black shadow-[0_0_8px_rgba(6,182,212,0.3)] animate-pulse'
+                      : 'bg-gray-900 border-gray-800 text-gray-650'
+                  }`}
+                >
+                  {questStep > stepNum ? '✓' : stepNum}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            
+            {/* Instructions */}
+            <div className="lg:col-span-8 space-y-3">
+              {questStep === 1 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                    Story: Fingerprinting the Blockchain
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    Cryptographic hashes act as digital signatures for blocks of data. Let's create a SHA-256 fingerprint for the word <span className="font-mono text-cyan-300 font-bold bg-black/40 px-1.5 py-0.5 rounded border border-gray-850">blockchain</span>.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    <strong className="text-cyan-400 font-semibold font-mono">Action Required:</strong> Ensure input string is <span className="font-mono text-white bg-black/40 px-1.5 py-0.5 rounded">blockchain</span> and click the **"Generate Hash"** button under the generator tab.
+                  </p>
+                </div>
+              )}
+
+              {questStep === 2 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                    Story: The Collision-Resistant Check
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    Even a tiny change in input (like capitalization) must yield a completely different hash to prevent confusion. Compare hashes of <span className="font-mono text-cyan-300 font-bold bg-black/40 px-1.5 py-0.5 rounded border border-gray-850">bitcoin</span> and <span className="font-mono text-cyan-300 font-bold bg-black/40 px-1.5 py-0.5 rounded border border-gray-850">Bitcoin</span>.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    <strong className="text-cyan-400 font-semibold font-mono">Action Required:</strong> Type <span className="font-mono text-white bg-black/40 px-1.5 py-0.5 rounded">bitcoin</span> as Input 1 and <span className="font-mono text-white bg-black/40 px-1.5 py-0.5 rounded">Bitcoin</span> as Input 2 under the compare tab.
+                  </p>
+                </div>
+              )}
+
+              {questStep === 3 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                    Story: Measuring Avalanche Bit-propagation
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-relaxed">
+                    The avalanche effect measures how many bits flip when only one character is changed. Compare <span className="font-mono text-cyan-300 font-bold bg-black/40 px-1.5 py-0.5 rounded border border-gray-850">crypto</span> and <span className="font-mono text-cyan-300 font-bold bg-black/40 px-1.5 py-0.5 rounded border border-gray-850">crypt0</span>.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    <strong className="text-cyan-400 font-semibold font-mono">Action Required:</strong> Type <span className="font-mono text-white bg-black/40 px-1.5 py-0.5 rounded">crypto</span> and <span className="font-mono text-white bg-black/40 px-1.5 py-0.5 rounded">crypt0</span>, and click **"Run Avalanche Analysis"** under the avalanche tab.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Next Button */}
+            <div className="lg:col-span-4 flex flex-col items-center lg:items-end justify-center gap-3">
+              {((questStep === 1 && isStep1Complete) ||
+                (questStep === 2 && isStep2Complete) ||
+                (questStep === 3 && isStep3Complete)) ? (
+                <button
+                  onClick={() => {
+                    if (questStep < 3) {
+                      setQuestStep(prev => prev + 1);
+                    } else {
+                      updateLabProgress('hashing', 100);
+                      setShowQuestSuccessModal(true);
+                      setIsQuestMode(false);
+                      setQuestStep(1);
+                    }
+                  }}
+                  className="w-full lg:w-auto px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-extrabold uppercase rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.4)] animate-bounce cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {questStep === 3 ? 'Complete Quest!' : 'Advance to Next Step'}
+                </button>
+              ) : (
+                <div className="w-full text-center lg:text-right border border-gray-850 bg-cyber-darker/60 rounded-lg p-3 text-[11px] font-mono text-cyan-400 animate-pulse">
+                  ⚠️ Step conditions incomplete. Follow instructions above.
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  setIsQuestMode(false);
+                  setQuestStep(1);
+                }}
+                className="text-[10px] font-mono text-gray-500 hover:text-gray-400 border-b border-gray-800 hover:border-gray-500 pb-0.5 transition-all cursor-pointer"
+              >
+                Exit Tutorial & Return to Sandbox
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* ELI5 Banner */}
-      <Eli5Banner
-        title="Understanding Hashing Functions"
-        analogyTitle="The Digital Food Processor"
-        analogyDescription="Imagine throwing fruits into a food processor. You press start and get a unique smoothie (a Hash Digest). You can NEVER un-blend a smoothie back into whole apples or bananas (One-Way property). If you change just 1 tiny seed, the entire smoothie color and flavor changes completely (Avalanche Effect)!"
-        bulletPoints={[
-          "One-Way: Easy to create a hash from text, impossible to reverse a hash back to text.",
-          "Unique Fingerprint: The same text always produces the exact same hash output.",
-          "Avalanche Effect: Changing 'Cat' to 'cat' produces a 100% different hash."
-        ]}
-      />
+      {!isQuestMode && (
+        <Eli5Banner
+          title="Understanding Hashing Functions"
+          analogyTitle="The Digital Food Processor"
+          analogyDescription="Imagine throwing fruits into a food processor. You press start and get a unique smoothie (a Hash Digest). You can NEVER un-blend a smoothie back into whole apples or bananas (One-Way property). If you change just 1 tiny seed, the entire smoothie color and flavor changes completely (Avalanche Effect)!"
+          bulletPoints={[
+            "One-Way: Easy to create a hash from text, impossible to reverse a hash back to text.",
+            "Unique Fingerprint: The same text always produces the exact same hash output.",
+            "Avalanche Effect: Changing 'Cat' to 'cat' produces a 100% different hash."
+          ]}
+        />
+      )}
 
       {/* Tab Contents */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -239,7 +426,12 @@ console.log(\`${genAlg} Digest: \${hash}\`);
                     onChange={(e) => setGenInput(e.target.value)}
                     placeholder="Enter plain text..."
                     rows={4}
-                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-3 text-white focus:outline-none focus:border-cyan-500 font-mono text-sm"
+                    disabled={isQuestMode && questStep !== 1}
+                    className={`w-full bg-cyber-darker border rounded-lg p-3 text-white focus:outline-none focus:border-cyan-500 font-mono text-sm transition-all ${
+                      isQuestMode && questStep === 1 && genInput.trim() !== 'blockchain'
+                        ? 'border-cyan-500 ring-2 ring-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-pulse'
+                        : 'border-gray-800'
+                    }`}
                   />
                 </div>
 
@@ -252,7 +444,8 @@ console.log(\`${genAlg} Digest: \${hash}\`);
                     <select
                       value={genAlg}
                       onChange={(e) => setGenAlg(e.target.value)}
-                      className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-500 font-mono text-sm"
+                      disabled={isQuestMode}
+                      className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-500 font-mono text-sm font-semibold"
                     >
                       {['MD5', 'SHA-1', 'SHA-256', 'SHA-512', 'SHA3-256', 'SHA3-512'].map(alg => (
                         <option key={alg} value={alg}>{alg}</option>
@@ -263,7 +456,11 @@ console.log(\`${genAlg} Digest: \${hash}\`);
                     <button
                       onClick={generateHash}
                       disabled={genLoading}
-                      className="w-full inline-flex items-center justify-center p-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium transition-colors"
+                      className={`w-full inline-flex items-center justify-center p-2.5 rounded-lg text-white font-semibold transition-all ${
+                        isQuestMode && questStep === 1 && genInput.trim() === 'blockchain' && genOutput === ''
+                          ? 'bg-cyan-500 hover:bg-cyan-400 ring-2 ring-cyan-500/40 animate-pulse shadow-[0_0_15px_rgba(6,182,212,0.3)]'
+                          : 'bg-cyan-600 hover:bg-cyan-550 cursor-pointer'
+                      }`}
                     >
                       {genLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
                       Generate Hash
@@ -356,7 +553,12 @@ console.log(\`${genAlg} Digest: \${hash}\`);
                     type="text"
                     value={compInput1}
                     onChange={(e) => setCompInput1(e.target.value)}
-                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none"
+                    disabled={isQuestMode && questStep !== 2}
+                    className={`w-full bg-cyber-darker border rounded-lg p-2.5 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none transition-all ${
+                      isQuestMode && questStep === 2 && compInput1.trim() !== 'bitcoin'
+                        ? 'border-cyan-500 ring-2 ring-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-pulse'
+                        : 'border-gray-800'
+                    }`}
                   />
                 </div>
                 <div>
@@ -365,7 +567,12 @@ console.log(\`${genAlg} Digest: \${hash}\`);
                     type="text"
                     value={compInput2}
                     onChange={(e) => setCompInput2(e.target.value)}
-                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none"
+                    disabled={isQuestMode && questStep !== 2}
+                    className={`w-full bg-cyber-darker border rounded-lg p-2.5 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none transition-all ${
+                      isQuestMode && questStep === 2 && compInput1.trim() === 'bitcoin' && compInput2.trim() !== 'Bitcoin'
+                        ? 'border-cyan-500 ring-2 ring-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-pulse'
+                        : 'border-gray-800'
+                    }`}
                   />
                 </div>
               </div>
@@ -375,7 +582,8 @@ console.log(\`${genAlg} Digest: \${hash}\`);
                 <select
                   value={compAlg}
                   onChange={(e) => setCompAlg(e.target.value)}
-                  className="bg-cyber-darker border border-gray-800 rounded-lg p-2 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none"
+                  disabled={isQuestMode}
+                  className="bg-cyber-darker border border-gray-800 rounded-lg p-2 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none font-semibold"
                 >
                   {['MD5', 'SHA-1', 'SHA-256', 'SHA-512', 'SHA3-256', 'SHA3-512'].map(alg => (
                     <option key={alg} value={alg}>{alg}</option>
@@ -425,7 +633,12 @@ console.log(\`${genAlg} Digest: \${hash}\`);
                     type="text"
                     value={avaInput1}
                     onChange={(e) => setAvaInput1(e.target.value)}
-                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm"
+                    disabled={isQuestMode && questStep !== 3}
+                    className={`w-full bg-cyber-darker border rounded-lg p-2.5 text-white font-mono text-sm transition-all ${
+                      isQuestMode && questStep === 3 && avaInput1.trim() !== 'crypto'
+                        ? 'border-cyan-500 ring-2 ring-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-pulse'
+                        : 'border-gray-800'
+                    }`}
                   />
                 </div>
                 <div>
@@ -434,7 +647,12 @@ console.log(\`${genAlg} Digest: \${hash}\`);
                     type="text"
                     value={avaInput2}
                     onChange={(e) => setAvaInput2(e.target.value)}
-                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm"
+                    disabled={isQuestMode && questStep !== 3}
+                    className={`w-full bg-cyber-darker border rounded-lg p-2.5 text-white font-mono text-sm transition-all ${
+                      isQuestMode && questStep === 3 && avaInput1.trim() === 'crypto' && avaInput2.trim() !== 'crypt0'
+                        ? 'border-cyan-500 ring-2 ring-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-pulse'
+                        : 'border-gray-800'
+                    }`}
                   />
                 </div>
               </div>
@@ -445,7 +663,8 @@ console.log(\`${genAlg} Digest: \${hash}\`);
                   <select
                     value={avaAlg}
                     onChange={(e) => setAvaAlg(e.target.value)}
-                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm"
+                    disabled={isQuestMode}
+                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-white font-mono text-sm font-semibold"
                   >
                     {['MD5', 'SHA-1', 'SHA-256', 'SHA-512', 'SHA3-256', 'SHA3-512'].map(alg => (
                       <option key={alg} value={alg}>{alg}</option>
@@ -455,7 +674,11 @@ console.log(\`${genAlg} Digest: \${hash}\`);
                 <button
                   onClick={runAvalancheAnalysis}
                   disabled={avaLoading}
-                  className="inline-flex items-center justify-center p-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold"
+                  className={`inline-flex items-center justify-center p-2.5 rounded-lg text-white font-semibold transition-all ${
+                    isQuestMode && questStep === 3 && avaInput1.trim() === 'crypto' && avaInput2.trim() === 'crypt0' && avaResult === null
+                      ? 'bg-cyan-500 hover:bg-cyan-400 ring-2 ring-cyan-500/40 animate-pulse shadow-[0_0_15px_rgba(6,182,212,0.3)] cursor-pointer'
+                      : 'bg-cyan-600 hover:bg-cyan-550 cursor-pointer'
+                  }`}
                 >
                   {avaLoading && <RefreshCw className="w-4 h-4 animate-spin mr-2" />}
                   Analyze Avalanche
@@ -624,6 +847,48 @@ console.log(\`${genAlg} Digest: \${hash}\`);
           }
         ]}
       />
+
+      {/* Quest Success Celebration Modal */}
+      {showQuestSuccessModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-cyber-dark border-2 border-cyan-550 rounded-2xl p-8 max-w-md text-center shadow-[0_0_40px_rgba(6,182,212,0.15)] relative">
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 text-5xl">🏆</div>
+            
+            <h2 className="text-2xl font-extrabold text-white mb-2 font-mono">
+              Quest Completed!
+            </h2>
+            <p className="text-cyan-400 text-xs font-mono font-semibold uppercase tracking-wider mb-4">
+              🎖️ Master of Digests & Avalanche
+            </p>
+            
+            <p className="text-xs text-gray-300 leading-relaxed mb-6">
+              Congratulations! You've completed the Hashing Laboratory Quest. You learned how to compute secure SHA-256 digests, contrast identical strings for collision resistance, and measure bitwise avalanche diffusion.
+            </p>
+
+            <div className="bg-cyber-darker p-4 rounded-xl border border-gray-850 mb-6 text-left space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Milestone reached:</span>
+                <span className="text-cyan-400 font-bold">100% Completion</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Skills updated:</span>
+                <span className="text-white font-mono font-bold">SHA-256, Avalanche Effect</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">XP Reward:</span>
+                <span className="text-amber-400 font-bold">+50 XP</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowQuestSuccessModal(false)}
+              className="w-full py-2.5 bg-cyan-550 hover:bg-cyan-500 text-white text-xs font-mono font-extrabold uppercase rounded-lg shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all cursor-pointer animate-pulse"
+            >
+              Back to Laboratories
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
