@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Shield, Key, Lock, Unlock, Copy, Check, RefreshCw, Info, Code, Compass, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Shield, Key, Lock, Unlock, Copy, Check, RefreshCw, Info, Code, Compass, CheckCircle2, Mail, KeyRound } from 'lucide-react';
+import { motion } from 'framer-motion';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
@@ -41,6 +42,69 @@ const AsymmetricLab: React.FC = () => {
   const [decPlaintext, setDecPlaintext] = useState<string | null>(null);
   const [decLoading, setDecLoading] = useState(false);
   const [decError, setDecError] = useState<string | null>(null);
+
+  // Cartoon Mailbox Animation States
+  const [mailboxMessage, setMailboxMessage] = useState('Secret Letter ✉️');
+  const [mailboxState, setMailboxState] = useState<'idle' | 'locked' | 'unlocked'>('idle');
+  const [mailboxCiphertext, setMailboxCiphertext] = useState('');
+  const [mailboxDecryptedText, setMailboxDecryptedText] = useState('');
+
+  const mailboxSlotRef = useRef<HTMLDivElement>(null);
+  const mailboxLockRef = useRef<HTMLDivElement>(null);
+
+  const handleLetterDragEnd = (_event: any, info: any) => {
+    if (!mailboxSlotRef.current) return;
+    const slotRect = mailboxSlotRef.current.getBoundingClientRect();
+    const dropX = info.point.x;
+    const dropY = info.point.y;
+
+    if (
+      dropX >= slotRect.left &&
+      dropX <= slotRect.right &&
+      dropY >= slotRect.top &&
+      dropY <= slotRect.bottom
+    ) {
+      setMailboxState('locked');
+      // Simple mock base64 ciphertext showing dynamic encryption
+      const rawB64 = btoa(mailboxMessage);
+      setMailboxCiphertext(rawB64.substring(0, 16) + "..." + rawB64.substring(rawB64.length - 16));
+      setMailboxDecryptedText('');
+    }
+  };
+
+  const handleKeyDragEnd = (_event: any, info: any) => {
+    if (!mailboxLockRef.current) return;
+    const lockRect = mailboxLockRef.current.getBoundingClientRect();
+    const dropX = info.point.x;
+    const dropY = info.point.y;
+
+    if (
+      dropX >= lockRect.left &&
+      dropX <= lockRect.right &&
+      dropY >= lockRect.top &&
+      dropY <= lockRect.bottom
+    ) {
+      if (mailboxState === 'locked') {
+        setMailboxState('unlocked');
+        setMailboxDecryptedText(mailboxMessage);
+      }
+    }
+  };
+
+  // Helper trigger to skip drag-and-drop on mobile/inaccessible devices
+  const triggerAutoEncrypt = () => {
+    setMailboxState('locked');
+    const rawB64 = btoa(mailboxMessage);
+    setMailboxCiphertext(rawB64.substring(0, 16) + "..." + rawB64.substring(rawB64.length - 16));
+    setMailboxDecryptedText('');
+  };
+
+  const triggerAutoDecrypt = () => {
+    if (mailboxState === 'locked') {
+      setMailboxState('unlocked');
+      setMailboxDecryptedText(mailboxMessage);
+    }
+  };
 
   // Code Recipes states
   const [codeLang, setCodeLang] = useState<'python' | 'node'>('python');
@@ -675,46 +739,226 @@ console.log("Decrypted:", decrypted.toString('utf8'));`;
           {/* TAB 4: FLOW */}
           {activeTab === 'flow' && (
             <div className="glass-panel p-6 space-y-6">
-              <h2 className="text-xl font-bold text-white mb-4">How RSA Asymmetric Encryption Works</h2>
-              
-              <div className="flex flex-col items-center space-y-6 bg-cyber-darker p-8 rounded-lg border border-gray-800">
-                <div className="flex items-center space-x-12">
-                  <div className="text-center">
-                    <div className="w-12 h-12 rounded-full bg-cyan-950/40 text-cyan-400 border border-cyan-800 flex items-center justify-center font-bold text-sm mx-auto mb-2">A</div>
-                    <div className="text-[10px] text-gray-400">Sender (Alice)</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="w-12 h-12 rounded-full bg-purple-950/40 text-purple-400 border border-purple-800 flex items-center justify-center font-bold text-sm mx-auto mb-2">B</div>
-                    <div className="text-[10px] text-gray-400">Recipient (Bob)</div>
-                  </div>
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-indigo-400" />
+                  How Asymmetric Encryption Works: The Mailbox Analogy
+                </h2>
+                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                  Asymmetric cryptography solves the key distribution problem. Anyone can encrypt messages using your <strong>Public Key</strong>, but only your matching <strong>Private Key</strong> can decrypt them.
+                </p>
+              </div>
+
+              {/* Mailbox Interactive Box */}
+              <div className="bg-cyber-darker p-6 rounded-2xl border border-gray-800 space-y-8 relative overflow-hidden select-none">
+                
+                {/* Visual Instructions */}
+                <div className="bg-indigo-950/20 border border-indigo-500/20 p-3 rounded-xl text-center text-xs text-indigo-300 font-mono flex items-center justify-center gap-2">
+                  <Compass className="w-4 h-4 animate-spin-slow text-indigo-400" />
+                  <span>
+                    {mailboxState === 'idle' && "Drag the Envelope into the Public Slot to Encrypt & Lock it!"}
+                    {mailboxState === 'locked' && "Dynamic RSA Ciphertext generated. Now drag the Private Key to the Lock to Decrypt & Open!"}
+                    {mailboxState === 'unlocked' && "Decryption successful! The Private Key unlocked the mailbox door."}
+                  </span>
                 </div>
 
-                <div className="w-full flex items-center justify-center relative">
-                  <div className="h-0.5 bg-gray-800 w-2/3 absolute" />
-                  <div className="bg-cyber-darker border border-gray-800 px-3 py-1.5 rounded z-10 text-xs font-mono text-gray-300">
-                    Bob publishes his **Public Key** to the world
-                  </div>
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch relative">
+                  
+                  {/* Left Column: Alice's Envelope */}
+                  <div className="flex flex-col items-center justify-between p-4 bg-gray-900/40 border border-gray-850 rounded-xl space-y-4">
+                    <div className="w-full text-center">
+                      <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 uppercase">
+                        Alice (Sender)
+                      </span>
+                      <h4 className="text-xs font-bold text-white mt-2">Write Secret Letter</h4>
+                    </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 w-full">
-                  <div className="border border-gray-850 p-4 rounded bg-gray-900/40 space-y-2">
-                    <div className="text-xs font-bold text-white">1. Encryption (By Alice)</div>
-                    <p className="text-[11px] text-gray-400">
-                      Alice writes a message and encrypts it using Bob's published public key. Once encrypted, **only** Bob's private key can reverse it.
-                    </p>
-                    <div className="text-[10px] font-mono text-cyan-400 bg-black p-1.5 rounded">
-                      Cipher = Message ^ Bob's_Public_Key
+                    <textarea
+                      value={mailboxMessage}
+                      disabled={mailboxState !== 'idle'}
+                      onChange={(e) => setMailboxMessage(e.target.value)}
+                      className="w-full h-20 bg-cyber-darker border border-gray-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-indigo-500 resize-none font-sans"
+                      placeholder="Type secret message..."
+                    />
+
+                    {mailboxState === 'idle' ? (
+                      <motion.div
+                        drag
+                        dragSnapToOrigin
+                        dragElastic={0.2}
+                        onDragEnd={handleLetterDragEnd}
+                        whileDrag={{ scale: 1.1, zIndex: 50 }}
+                        className="w-36 h-24 bg-gradient-to-br from-yellow-100 to-amber-200 border-2 border-amber-600 rounded-lg shadow-xl cursor-grab active:cursor-grabbing flex flex-col justify-between p-2.5 text-black font-semibold text-[10px] relative hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] transition-shadow"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white text-[8px] font-bold">✉️</div>
+                          <div className="w-5 h-6 bg-blue-600 border border-blue-500 rounded flex items-center justify-center text-white text-[6px]">STAMP</div>
+                        </div>
+                        <div className="truncate text-center font-mono font-bold">{mailboxMessage || 'EMPTY'}</div>
+                        <div className="text-[7px] text-gray-500 text-right">TO: BOB (PUBLIC)</div>
+                      </motion.div>
+                    ) : (
+                      <div className="w-36 h-24 bg-gray-950/60 border border-dashed border-gray-800 rounded-lg flex items-center justify-center text-[10px] text-gray-600 font-mono">
+                        Envelope Sent
+                      </div>
+                    )}
+
+                    <div className="w-full">
+                      {mailboxState === 'idle' ? (
+                        <button
+                          onClick={triggerAutoEncrypt}
+                          className="w-full py-1.5 bg-cyan-950/30 hover:bg-cyan-900/50 border border-cyan-500/20 hover:border-cyan-500/40 text-cyan-400 text-[10px] font-mono uppercase rounded-lg transition-all cursor-pointer"
+                        >
+                          ⚡ Auto Encrypt
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setMailboxState('idle');
+                            setMailboxCiphertext('');
+                            setMailboxDecryptedText('');
+                          }}
+                          className="w-full py-1.5 bg-gray-850 hover:bg-gray-800 border border-gray-800 text-gray-400 text-[10px] font-mono uppercase rounded-lg transition-all cursor-pointer"
+                        >
+                          Reset Analogy
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div className="border border-gray-850 p-4 rounded bg-gray-900/40 space-y-2">
-                    <div className="text-xs font-bold text-white">2. Decryption (By Bob)</div>
-                    <p className="text-[11px] text-gray-400">
-                      Bob receives the ciphertext and decrypts it with his secret private key, which he has never shared.
-                    </p>
-                    <div className="text-[10px] font-mono text-purple-400 bg-black p-1.5 rounded">
-                      Original = Cipher ^ Bob's_Private_Key
+
+                  {/* Middle Column: The Cartoon Mailbox */}
+                  <div className="flex flex-col items-center justify-between p-4 bg-gray-900/60 border border-gray-800 rounded-xl relative space-y-6 min-h-[300px]">
+                    <div className="w-full text-center">
+                      <span className="text-[10px] font-mono font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20 uppercase">
+                        Bob's Public Mailbox
+                      </span>
+                    </div>
+
+                    {/* Cartoon Mailbox */}
+                    <div className="relative w-44 h-48 bg-gradient-to-b from-gray-700 to-gray-800 rounded-t-3xl border border-gray-600 flex flex-col items-center justify-between p-3 relative shadow-inner">
+                      
+                      {/* Public key slot */}
+                      <div 
+                        ref={mailboxSlotRef}
+                        className={`w-32 py-2.5 rounded-md border text-center transition-all relative ${
+                          mailboxState === 'idle'
+                            ? 'bg-blue-950/40 border-blue-500/40 animate-pulse text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                            : 'bg-gray-900 border-gray-800 text-gray-500'
+                        }`}
+                      >
+                        <div className="w-20 h-1.5 bg-black rounded mx-auto mb-1.5 border border-gray-800" />
+                        <span className="text-[8px] font-mono uppercase font-bold tracking-wider">
+                          Public key slot
+                        </span>
+                      </div>
+
+                      {/* Locked/Unlocked display */}
+                      <div className="w-full flex-grow flex items-center justify-center p-2 relative">
+                        
+                        {/* Red Mailbox Flag */}
+                        <div 
+                          className="absolute -right-3 top-10 w-2.5 h-16 bg-gray-850 border border-gray-750 transition-transform origin-bottom duration-500"
+                          style={{
+                            transform: mailboxState === 'locked' ? 'rotate(0deg)' : 'rotate(90deg)',
+                          }}
+                        >
+                          <div className="w-5 h-4 bg-red-600 rounded-sm absolute -top-3 -left-1" />
+                        </div>
+
+                        {/* Door swing / Open content */}
+                        {mailboxState === 'unlocked' ? (
+                          <div className="w-full h-full bg-emerald-950/10 border border-emerald-500/20 rounded-lg p-2.5 flex flex-col justify-between animate-fade-in text-[10px] font-sans">
+                            <span className="text-[8px] font-mono font-bold text-emerald-400 uppercase tracking-widest block border-b border-emerald-900/30 pb-1">
+                              🔓 Mailbox Opened
+                            </span>
+                            <p className="text-white italic mt-1.5 break-all max-h-16 overflow-y-auto">
+                              "{mailboxDecryptedText}"
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center space-y-2">
+                            {mailboxState === 'locked' ? (
+                              <div className="w-full text-center space-y-1.5">
+                                <div 
+                                  ref={mailboxLockRef}
+                                  className="w-10 h-10 bg-rose-950/40 border border-rose-500/40 rounded-full flex items-center justify-center text-rose-500 mx-auto shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-pulse"
+                                >
+                                  <Lock className="w-4 h-4" />
+                                </div>
+                                <span className="text-[8px] font-mono uppercase text-rose-400 tracking-widest">
+                                  locked
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="text-center text-[9px] text-gray-500 font-mono uppercase animate-pulse">
+                                Awaiting Mail...
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Decryption lock interface */}
+                      {mailboxState === 'locked' && (
+                        <div className="w-full bg-gray-900/90 border border-gray-800 p-1.5 rounded-lg text-[8px] font-mono text-gray-400 break-all select-all max-h-12 overflow-y-auto leading-tight">
+                          <span className="text-indigo-400 font-bold block text-[7px] uppercase">RSA Ciphertext:</span>
+                          {mailboxCiphertext}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-[9px] font-mono text-gray-500 text-center uppercase tracking-wider">
+                      Secured Channel
                     </div>
                   </div>
+
+                  {/* Right Column: Bob's Private Key */}
+                  <div className="flex flex-col items-center justify-between p-4 bg-gray-900/40 border border-gray-850 rounded-xl space-y-4">
+                    <div className="w-full text-center">
+                      <span className="text-[10px] font-mono font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20 uppercase">
+                        Bob (Recipient)
+                      </span>
+                      <h4 className="text-xs font-bold text-white mt-2">Private Decryption Key</h4>
+                    </div>
+
+                    <div className="flex-grow flex items-center justify-center">
+                      {mailboxState === 'locked' ? (
+                        <motion.div
+                          drag
+                          dragSnapToOrigin
+                          dragElastic={0.2}
+                          onDragEnd={handleKeyDragEnd}
+                          whileDrag={{ scale: 1.1, zIndex: 50 }}
+                          className="w-16 h-16 bg-gradient-to-br from-amber-400 to-yellow-600 border border-yellow-300 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.25)] hover:shadow-[0_0_25px_rgba(245,158,11,0.45)] cursor-grab active:cursor-grabbing flex items-center justify-center text-white relative transition-shadow"
+                        >
+                          <KeyRound className="w-8 h-8 text-black" />
+                          <div className="absolute -bottom-6 w-20 text-[8px] font-mono text-amber-400 uppercase tracking-widest text-center">
+                            Private Key
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <div className="w-16 h-16 bg-gray-950/60 border border-dashed border-gray-800 rounded-full flex items-center justify-center text-gray-650">
+                          <KeyRound className="w-8 h-8 opacity-25" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="w-full">
+                      {mailboxState === 'locked' ? (
+                        <button
+                          onClick={triggerAutoDecrypt}
+                          className="w-full py-1.5 bg-purple-950/30 hover:bg-purple-900/50 border border-purple-500/20 hover:border-purple-500/40 text-purple-400 text-[10px] font-mono uppercase rounded-lg transition-all cursor-pointer"
+                        >
+                          ⚡ Auto Decrypt
+                        </button>
+                      ) : (
+                        <div className="w-full py-1.5 bg-gray-950 border border-gray-850 text-gray-650 text-[10px] font-mono uppercase rounded-lg text-center select-none cursor-not-allowed">
+                          Key Locked
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </div>
