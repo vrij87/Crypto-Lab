@@ -59,8 +59,38 @@ const HANDSHAKE_STEPS: StepDetails[] = [
 const CertificateLab: React.FC = () => {
   const { markLabVisited, updateLabProgress } = useProgress();
   
-  // Tab control: 'explorer' (original) or 'handshake' (new animator)
-  const [activeTab, setActiveTab] = useState<'explorer' | 'handshake'>('explorer');
+  const [activeTab, setActiveTab] = useState<'explorer' | 'handshake' | 'animation'>('explorer');
+
+  // Certificate Animation States
+  const [hostInput, setHostInput] = useState('google.com');
+  const [caStamp, setCaStamp] = useState<'idle' | 'checking' | 'approved' | 'rejected'>('idle');
+  const [inspectorChecks, setInspectorChecks] = useState({ date: false, host: false, signature: false });
+
+  const triggerPassportControl = () => {
+    setCaStamp('checking');
+    setInspectorChecks({ date: false, host: false, signature: false });
+
+    setTimeout(() => {
+      setInspectorChecks(prev => ({ ...prev, date: true }));
+    }, 600);
+
+    setTimeout(() => {
+      setInspectorChecks(prev => ({ ...prev, host: true }));
+    }, 1200);
+
+    setTimeout(() => {
+      setInspectorChecks(prev => ({ ...prev, signature: true }));
+    }, 1800);
+
+    setTimeout(() => {
+      const isMalicious = hostInput.toLowerCase().includes('hack') || hostInput.toLowerCase().includes('phish') || hostInput.toLowerCase().includes('fake');
+      if (isMalicious) {
+        setCaStamp('rejected');
+      } else {
+        setCaStamp('approved');
+      }
+    }, 2400);
+  };
 
   // Explorer Tab States
   const [urlInput, setUrlInput] = useState('google.com');
@@ -1159,6 +1189,172 @@ const CertificateLab: React.FC = () => {
 
           </div>
 
+        </div>
+      )}
+
+      {/* TAB: ANIMATION */}
+      {activeTab === 'animation' && (
+        <div className="glass-panel p-6 space-y-6">
+          <div>
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <Globe className="w-5 h-5 text-emerald-400" />
+              Certificate Validation: The Customs Passport Control
+            </h2>
+            <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+              X.509 Certificates serve as digital passports for websites. Before establishing an HTTPS connection, your web browser acts like a customs agent—validating domain names, expiration dates, and digital signatures against trusted Root CAs.
+            </p>
+          </div>
+
+          {/* Passport Interactive Box */}
+          <div className="bg-cyber-darker p-6 rounded-2xl border border-gray-800 space-y-8 relative overflow-hidden select-none">
+            
+            {/* HUD Instructions */}
+            <div className="bg-emerald-950/20 border border-emerald-500/20 p-3 rounded-xl text-center text-xs text-emerald-300 font-mono flex items-center justify-center gap-2">
+              <Compass className="w-4 h-4 animate-spin-slow text-emerald-400" />
+              <span>
+                {caStamp === 'idle' && "Type a website domain, then click 'Inspect Passport Cert' to start the customs inspection!"}
+                {caStamp === 'checking' && "Customs agent checking dates, domain constraints, and cryptographic signatures..."}
+                {caStamp === 'approved' && "🟢 TRUST ESTABLISHED! The certificate passport is authentic. HTTPS gate open!"}
+                {caStamp === 'rejected' && "🔴 SECURE WARNING! Mismatched domain or untrusted issuer. Entrance blocked!"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch justify-center font-sans">
+              
+              {/* Left Column: Input and Checklist */}
+              <div className="flex flex-col p-4 bg-gray-900/40 border border-gray-850 rounded-xl space-y-4 justify-between">
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 uppercase">
+                      Target Domain
+                    </span>
+                    <h4 className="text-xs font-bold text-white mt-2">Request Secure Entrance</h4>
+                  </div>
+
+                  <input
+                    type="text"
+                    value={hostInput}
+                    disabled={caStamp === 'checking'}
+                    onChange={(e) => setHostInput(e.target.value)}
+                    className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
+                    placeholder="e.g. google.com (try 'hackers.com')"
+                  />
+
+                  {/* Inspector Checklist */}
+                  <div className="space-y-3 pt-2">
+                    <span className="text-[9px] font-mono text-gray-500 uppercase tracking-wider block">Customs Audit Checklist:</span>
+                    <div className="space-y-2 text-xs font-mono">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center text-[9px] font-bold ${
+                          inspectorChecks.date ? 'bg-emerald-500 border-emerald-400 text-black' : 'bg-gray-950 border-gray-800 text-transparent'
+                        }`}>✔</div>
+                        <span className={inspectorChecks.date ? 'text-gray-300' : 'text-gray-550'}>1. Certificate Expiry Audit</span>
+                      </div>
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center text-[9px] font-bold ${
+                          inspectorChecks.host ? 'bg-emerald-500 border-emerald-400 text-black' : 'bg-gray-950 border-gray-800 text-transparent'
+                        }`}>✔</div>
+                        <span className={inspectorChecks.host ? 'text-gray-300' : 'text-gray-550'}>2. Hostname matching (CN / SAN)</span>
+                      </div>
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center text-[9px] font-bold ${
+                          inspectorChecks.signature ? 'bg-emerald-500 border-emerald-400 text-black' : 'bg-gray-950 border-gray-800 text-transparent'
+                        }`}>✔</div>
+                        <span className={inspectorChecks.signature ? 'text-gray-300' : 'text-gray-550'}>3. CA Root trust anchor check</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <button
+                    onClick={triggerPassportControl}
+                    disabled={caStamp === 'checking' || !hostInput.trim()}
+                    className="flex-1 py-2 bg-emerald-650 hover:bg-emerald-600 text-white font-extrabold text-xs uppercase tracking-wider font-mono rounded-lg transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)] disabled:opacity-40 cursor-pointer"
+                  >
+                    {caStamp === 'checking' ? 'Inspecting...' : '🛂 Inspect Passport Cert'}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setCaStamp('idle');
+                      setHostInput('google.com');
+                      setInspectorChecks({ date: false, host: false, signature: false });
+                    }}
+                    disabled={caStamp === 'checking'}
+                    className="py-2 px-4 bg-gray-850 hover:bg-gray-800 border border-gray-800 text-gray-400 text-xs font-mono uppercase rounded-lg transition-all cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Column: Cartoon Passport Control Booth */}
+              <div className="flex flex-col items-center justify-center bg-gray-900/20 border border-gray-850 p-6 rounded-2xl relative min-h-[300px]">
+                
+                {/* Visual Passport Book */}
+                <div className="w-52 h-64 bg-[#1e293b] border-2 border-amber-600/30 rounded-lg shadow-2xl p-4 flex flex-col justify-between relative overflow-hidden text-slate-100">
+                  
+                  {/* Passport emblem */}
+                  <div className="text-center space-y-1.5 pt-2">
+                    <span className="text-3xl block">🌐</span>
+                    <span className="text-[9px] font-mono uppercase text-amber-400 tracking-widest font-extrabold block">
+                      Digital Passport
+                    </span>
+                    <span className="text-[7px] text-slate-400 font-mono block">X.509 IDENTITY CREDENTIALS</span>
+                  </div>
+
+                  {/* Passport data sheet */}
+                  <div className="bg-slate-900/90 border border-slate-800 p-2.5 rounded text-[8px] font-mono space-y-1 text-slate-300">
+                    <div><span className="text-amber-500">SUBJECT:</span> {hostInput || 'EMPTY'}</div>
+                    <div><span className="text-amber-500">ISSUER:</span> Zero Trust Root CA-1</div>
+                    <div><span className="text-amber-500">ALGORITHM:</span> sha256WithRSAEncryption</div>
+                  </div>
+
+                  {/* Stamp overlays */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
+                    <AnimatePresence>
+                      {caStamp === 'approved' && (
+                        <motion.div
+                          initial={{ scale: 3.5, opacity: 0, rotate: -25 }}
+                          animate={{ scale: 1, opacity: 0.85, rotate: -12 }}
+                          className="w-40 py-2 border-4 border-emerald-500 text-emerald-400 text-center font-bold text-[10px] uppercase font-mono tracking-widest rounded-lg bg-slate-900/95 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                        >
+                          APPROVED ✔
+                          <span className="block text-[6px] text-emerald-500/80 font-normal font-sans">HTTPS SECURE ACCESS</span>
+                        </motion.div>
+                      )}
+
+                      {caStamp === 'rejected' && (
+                        <motion.div
+                          initial={{ scale: 3.5, opacity: 0, rotate: 25 }}
+                          animate={{ scale: 1, opacity: 0.85, rotate: 12 }}
+                          className="w-40 py-2 border-4 border-rose-500 text-rose-500 text-center font-bold text-[10px] uppercase font-mono tracking-widest rounded-lg bg-slate-900/95 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                        >
+                          REJECTED ✕
+                          <span className="block text-[6px] text-rose-500/80 font-normal font-sans">UNTRUSTED OR HOSTNAME MISMATCH</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+
+                {/* Cyber Security Gate */}
+                <div className="w-full mt-4 flex justify-between items-center bg-gray-950 p-3 rounded-lg border border-gray-850">
+                  <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Network Access Gate:</span>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3.5 h-3.5 rounded-full border transition-all ${
+                      caStamp === 'approved' ? 'bg-emerald-500 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)] animate-pulse' : 'bg-gray-850 border-gray-800'
+                    }`} />
+                    <span className="text-[10px] font-mono font-bold text-white uppercase">
+                      {caStamp === 'approved' ? 'OPEN' : 'CLOSED'}
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

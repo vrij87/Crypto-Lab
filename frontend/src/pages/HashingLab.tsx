@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Hash, Copy, Check, RefreshCw, BarChart2, ShieldAlert, Code, Compass, CheckCircle2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
@@ -8,15 +9,16 @@ import { RealWorldUsesCard } from '../components/RealWorldUsesCard';
 
 const HashingLab: React.FC = () => {
   const { markLabVisited, updateLabProgress, recordAlgorithmLearned } = useProgress();
-  const [activeTab, setActiveTab] = useState<'generator' | 'compare' | 'avalanche' | 'benchmark'>('generator');
+  const [activeTab, setActiveTab] = useState<'generator' | 'compare' | 'animation' | 'avalanche' | 'benchmark'>('generator');
 
   useEffect(() => {
     markLabVisited('hashing', 'Hashing Laboratory', '/labs/hashing');
   }, []);
 
-  const handleTabChange = (tab: 'generator' | 'compare' | 'avalanche' | 'benchmark') => {
+  const handleTabChange = (tab: 'generator' | 'compare' | 'animation' | 'avalanche' | 'benchmark') => {
     setActiveTab(tab);
-    if (tab === 'compare') updateLabProgress('hashing', 50);
+    if (tab === 'compare') updateLabProgress('hashing', 40);
+    if (tab === 'animation') updateLabProgress('hashing', 60);
     if (tab === 'avalanche') updateLabProgress('hashing', 75);
     if (tab === 'benchmark') updateLabProgress('hashing', 90);
   };
@@ -27,6 +29,30 @@ const HashingLab: React.FC = () => {
   const [genOutput, setGenOutput] = useState('');
   const [copied, setCopied] = useState(false);
   const [genLoading, setGenLoading] = useState(false);
+
+  // Blender Hashing Animation States
+  const [blendInput, setBlendInput] = useState('Apples 🍎');
+  const [isBlending, setIsBlending] = useState(false);
+  const [blendHash, setBlendHash] = useState('');
+  const [blendColor, setBlendColor] = useState('#3b82f6');
+
+  const triggerBlend = async () => {
+    setIsBlending(true);
+    try {
+      const msgBuffer = new TextEncoder().encode(blendInput);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      setTimeout(() => {
+        setBlendHash(hashHex);
+        setBlendColor('#' + hashHex.substring(0, 6));
+        setIsBlending(false);
+      }, 1200);
+    } catch (e) {
+      setIsBlending(false);
+    }
+  };
   const [codeLang, setCodeLang] = useState<'python' | 'node'>('python');
   const [copiedCode, setCopiedCode] = useState(false);
 
@@ -251,7 +277,7 @@ console.log(\`${genAlg} Digest: \${hash}\`);
           </button>
 
           <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
-            {(['generator', 'compare', 'avalanche', 'benchmark'] as const).map((tab) => (
+            {(['generator', 'compare', 'animation', 'avalanche', 'benchmark'] as const).map((tab) => (
               <button
                 key={tab}
                 disabled={isQuestMode}
@@ -264,7 +290,7 @@ console.log(\`${genAlg} Digest: \${hash}\`);
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                {tab}
+                {tab === 'generator' ? '1. Generator' : tab === 'compare' ? '2. Compare' : tab === 'animation' ? '3. Animation' : tab === 'avalanche' ? '4. Avalanche' : '5. Benchmark'}
               </button>
             ))}
           </div>
@@ -538,6 +564,149 @@ console.log(\`${genAlg} Digest: \${hash}\`);
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: ANIMATION */}
+          {activeTab === 'animation' && (
+            <div className="glass-panel p-6 space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Hash className="w-5 h-5 text-cyan-400" />
+                  One-Way Hashing: The Cryptographic Blender
+                </h2>
+                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                  Cryptographic hashing acts like a mathematical food blender. Throw any text inside, blend it, and receive a fixed-length digest. You can never un-blend the smoothie to recover the original text!
+                </p>
+              </div>
+
+              {/* Blender Interactive Sandbox */}
+              <div className="bg-cyber-darker p-6 rounded-2xl border border-gray-800 space-y-8 relative overflow-hidden select-none">
+                
+                {/* HUD Instructions */}
+                <div className="bg-cyan-950/20 border border-cyan-500/20 p-3 rounded-xl text-center text-xs text-cyan-300 font-mono flex items-center justify-center gap-2">
+                  <Compass className="w-4 h-4 animate-spin-slow text-cyan-400" />
+                  <span>
+                    {isBlending ? "Shaking, grinding, and compressing data bits..." : blendHash ? "Hash completed! Modify the ingredients to see the fluid color change completely (Avalanche Effect)!" : "Enter ingredients, then click Blend to calculate a one-way digest!"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center justify-center">
+                  
+                  {/* Left Column: Ingredients Input */}
+                  <div className="flex flex-col p-4 bg-gray-900/40 border border-gray-850 rounded-xl space-y-4">
+                    <div className="w-full">
+                      <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 uppercase">
+                        Ingredients (Input Payload)
+                      </span>
+                      <h4 className="text-xs font-bold text-white mt-2">Blender Feed Input</h4>
+                    </div>
+
+                    <input
+                      type="text"
+                      value={blendInput}
+                      disabled={isBlending}
+                      onChange={(e) => setBlendInput(e.target.value)}
+                      className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                      placeholder="Type words to blend..."
+                    />
+
+                    <button
+                      onClick={triggerBlend}
+                      disabled={isBlending || !blendInput.trim()}
+                      className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-black font-extrabold text-xs uppercase tracking-wider font-mono rounded-lg transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {isBlending ? "Blending..." : "🌪️ Blend Ingredients"}
+                    </button>
+
+                    {blendHash && (
+                      <div className="space-y-2 border-t border-gray-850 pt-3">
+                        <span className="text-[8px] font-mono text-gray-500 uppercase tracking-widest block">Avalanche Fluid Color Match:</span>
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-6 h-6 rounded border border-white/20 transition-colors duration-500" 
+                            style={{ backgroundColor: blendColor }}
+                          />
+                          <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">{blendColor}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column: Cartoon Blender */}
+                  <div className="flex flex-col items-center justify-center relative min-h-[320px]">
+                    
+                    {/* Blender Jar */}
+                    <motion.div
+                      animate={isBlending ? { x: [-2, 2, -2, 2, -1, 1, 0], y: [-1, 1, -1, 1, 0] } : {}}
+                      transition={isBlending ? { repeat: Infinity, duration: 0.08 } : {}}
+                      className="w-36 h-48 bg-gray-900/80 border border-slate-750 rounded-t-lg border-b-4 border-b-slate-800 flex flex-col justify-between p-3 relative"
+                    >
+                      {/* Jar Lid */}
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-32 h-3.5 bg-red-750 border border-red-850 rounded-t" />
+
+                      {/* Measurement lines */}
+                      <div className="absolute left-2 top-4 bottom-4 w-1.5 flex flex-col justify-between text-[6px] text-gray-650 font-mono">
+                        <span>— MAX</span>
+                        <span>— 800ml</span>
+                        <span>— 500ml</span>
+                        <span>— 200ml</span>
+                      </div>
+
+                      {/* Blending Fluid Layer */}
+                      <div className="w-full flex-grow relative overflow-hidden rounded mt-3">
+                        {blendHash && (
+                          <motion.div
+                            initial={{ height: 0 }}
+                            animate={{ height: '70%' }}
+                            transition={{ duration: 0.8 }}
+                            className="absolute bottom-0 left-0 right-0 rounded transition-colors duration-500 opacity-60 flex items-center justify-center"
+                            style={{ backgroundColor: blendColor }}
+                          >
+                            {isBlending && (
+                              <div className="absolute inset-0 bg-white/10 animate-pulse flex items-center justify-center text-[10px] text-black">🌀</div>
+                            )}
+                          </motion.div>
+                        )}
+                        
+                        {!blendHash && !isBlending && (
+                          <div className="absolute inset-0 flex items-center justify-center text-[9px] text-gray-650 font-mono uppercase text-center p-4">
+                            Empty Jar. Drop ingredients!
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Blender Blades */}
+                      <div className="w-12 h-2 bg-slate-850 border border-slate-800 rounded-sm mx-auto flex items-center justify-between px-1">
+                        <div className="w-2.5 h-0.5 bg-slate-500 rounded" />
+                        <div className="w-2.5 h-0.5 bg-slate-500 rounded" />
+                      </div>
+                    </motion.div>
+
+                    {/* Blender Base Motor */}
+                    <div className="w-44 h-16 bg-gradient-to-b from-gray-800 to-gray-900 border border-gray-700 rounded-b-2xl shadow-xl flex items-center justify-center p-2 relative">
+                      {/* Dial knob */}
+                      <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-700 relative">
+                        <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-0.5 h-2 bg-red-500 rounded" />
+                      </div>
+                      
+                      {/* Power light */}
+                      <div className={`w-2.5 h-2.5 rounded-full border absolute right-6 top-6 ${
+                        isBlending ? 'bg-red-550 border-red-400 animate-ping' : 'bg-red-950 border-red-900'
+                      }`} />
+                    </div>
+
+                    {/* Output cup drip */}
+                    {blendHash && !isBlending && (
+                      <div className="w-full mt-4 bg-gray-900 border border-gray-850 rounded-lg p-2.5 text-left space-y-1.5 animate-fade-in font-mono text-[9px] text-gray-400 break-all select-all">
+                        <span className="text-cyan-400 font-bold block uppercase text-[7px]">SHA-256 HASH SMOOTHIE:</span>
+                        {blendHash}
+                      </div>
+                    )}
+
+                  </div>
+                </div>
               </div>
             </div>
           )}

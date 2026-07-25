@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Compass, Copy, Check, Shield, Terminal, CheckCircle2, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
 import { Eli5Tooltip } from '../components/Eli5Tooltip';
@@ -14,7 +15,7 @@ const ENGLISH_FREQUENCIES: Record<string, number> = {
 
 const ClassicalLab: React.FC = () => {
   const { markLabVisited, updateLabProgress, recordAlgorithmLearned } = useProgress();
-  const [activeTab, setActiveTab] = useState<'encrypt' | 'decrypt' | 'analysis' | 'about'>('encrypt');
+  const [activeTab, setActiveTab] = useState<'encrypt' | 'decrypt' | 'animation' | 'analysis' | 'about'>('encrypt');
   const [activeCipher, setActiveCipher] = useState<'caesar' | 'vigenere' | 'rot13'>('caesar');
   
   // Inputs
@@ -77,9 +78,10 @@ const ClassicalLab: React.FC = () => {
     markLabVisited('classical', 'Classical Ciphers Lab', '/labs/classical');
   }, []);
 
-  const handleTabChange = (tab: 'encrypt' | 'decrypt' | 'analysis' | 'about') => {
+  const handleTabChange = (tab: 'encrypt' | 'decrypt' | 'animation' | 'analysis' | 'about') => {
     setActiveTab(tab);
-    if (tab === 'decrypt') updateLabProgress('classical', 50);
+    if (tab === 'decrypt') updateLabProgress('classical', 40);
+    if (tab === 'animation') updateLabProgress('classical', 65);
     if (tab === 'analysis') updateLabProgress('classical', 80);
     if (tab === 'about') updateLabProgress('classical', 100);
   };
@@ -273,7 +275,7 @@ const ClassicalLab: React.FC = () => {
           </button>
 
           <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
-            {(['encrypt', 'decrypt', 'analysis', 'about'] as const).map((tab) => (
+            {(['encrypt', 'decrypt', 'animation', 'analysis', 'about'] as const).map((tab) => (
               <button
                 key={tab}
                 disabled={isQuestMode}
@@ -286,7 +288,7 @@ const ClassicalLab: React.FC = () => {
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                {tab}
+                {tab === 'encrypt' ? '1. Encrypt' : tab === 'decrypt' ? '2. Decrypt' : tab === 'animation' ? '3. Animation' : tab === 'analysis' ? '4. Frequency Analysis' : '5. About'}
               </button>
             ))}
           </div>
@@ -790,6 +792,132 @@ const ClassicalLab: React.FC = () => {
                   <div className="w-full bg-cyber-darker/60 border border-gray-800 rounded-lg p-3 text-emerald-400 font-mono text-sm break-all min-h-[80px]">
                     {decryptedText || 'Decrypted readable text will appear here...'}
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: ANIMATION */}
+          {activeTab === 'animation' && (
+            <div className="glass-panel p-6 space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Terminal className="w-5 h-5 text-amber-400" />
+                  Classical Encryption: The Caesar Shift Cylinder
+                </h2>
+                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                  The Caesar Cipher encrypts text by shifting letters in the alphabet by a set number of positions. This interactive cylinder aligns the outer ciphertext ring with the inner plaintext ring.
+                </p>
+              </div>
+
+              {/* Slider & Cylinder Controls */}
+              <div className="bg-cyber-darker p-6 rounded-2xl border border-gray-800 space-y-8 relative overflow-hidden select-none">
+                
+                {/* Visual Instructions */}
+                <div className="bg-amber-950/20 border border-amber-500/20 p-3 rounded-xl text-center text-xs text-amber-300 font-mono flex items-center justify-center gap-2">
+                  <Compass className="w-4 h-4 animate-spin-slow text-amber-400" />
+                  <span>
+                    Adjust the Shift Dial Slider below to watch the cryptographic barrel rotate and transform the characters!
+                  </span>
+                </div>
+
+                <div className="flex flex-col items-center space-y-6">
+                  {/* Slider Control */}
+                  <div className="w-full max-w-md bg-gray-900/60 p-4 rounded-xl border border-gray-850 space-y-3">
+                    <div className="flex justify-between items-center text-xs font-mono text-gray-400">
+                      <span>CYLINDER SHIFT VALUE:</span>
+                      <span className="text-amber-400 font-bold text-sm bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20">
+                        +{caesarShift} positions
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="25"
+                      value={caesarShift}
+                      onChange={(e) => setCaesarShift(parseInt(e.target.value))}
+                      className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                    />
+                  </div>
+
+                  {/* The Cartoon Cylinder / Slide Tape */}
+                  <div className="w-full max-w-2xl bg-gradient-to-b from-amber-950/15 via-gray-950/40 to-amber-950/5 border border-amber-500/10 rounded-2xl p-6 space-y-6 shadow-[inset_0_0_30px_rgba(245,158,11,0.05)] relative">
+                    
+                    {/* Metal barrel ends */}
+                    <div className="absolute top-0 bottom-0 left-0 w-4 bg-gradient-to-r from-gray-800 to-gray-950 border-r border-gray-800 rounded-l-2xl" />
+                    <div className="absolute top-0 bottom-0 right-0 w-4 bg-gradient-to-l from-gray-800 to-gray-950 border-l border-gray-800 rounded-r-2xl" />
+
+                    <div className="px-4 space-y-6 overflow-hidden">
+                      {/* Row 1: Plaintext Tape (Fixed) */}
+                      <div className="flex flex-col space-y-2">
+                        <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-widest pl-2">
+                          Plaintext Alphabet (Inner Cylinder)
+                        </span>
+                        <div className="flex items-center gap-1 bg-gray-900/80 p-2.5 rounded-lg border border-gray-850 justify-between">
+                          {'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((char) => (
+                            <div key={`plain-${char}`} className="w-8 h-8 flex items-center justify-center font-mono font-bold text-sm text-gray-400 border-r border-gray-850/40 last:border-0">
+                              {char}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Row 2: Ciphertext Tape (Slides based on shift) */}
+                      <div className="flex flex-col space-y-2">
+                        <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-widest pl-2">
+                          Ciphertext Alphabet (Outer Rotating Barrel)
+                        </span>
+                        <div className="bg-gray-900/80 p-2.5 rounded-lg border border-amber-500/20 relative overflow-hidden h-14 flex items-center shadow-[0_0_15px_rgba(245,158,11,0.05)]">
+                          
+                          {/* Sliding Wrapper */}
+                          <motion.div
+                            animate={{ x: -((caesarShift) * 32.2) }}
+                            transition={{ type: 'spring', stiffness: 120, damping: 14 }}
+                            className="flex gap-0 absolute left-2.5"
+                          >
+                            {/* Duplicate the alphabet to facilitate wrap-around visuals during shifts */}
+                            {('ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')).map((char, index) => (
+                              <div
+                                key={`cipher-${char}-${index}`}
+                                className="w-[32.2px] h-8 flex items-center justify-center font-mono font-bold text-sm text-amber-300 border-r border-amber-500/10 last:border-0"
+                              >
+                                {char}
+                              </div>
+                            ))}
+                          </motion.div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Character conversion stream */}
+                  <div className="w-full max-w-2xl bg-gray-900/40 p-4 border border-gray-850 rounded-xl space-y-4">
+                    <span className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-wider block border-b border-gray-850 pb-2">
+                      Live Cylinder Conversion Output
+                    </span>
+
+                    <div className="flex flex-wrap gap-2.5 justify-center py-2">
+                      {plaintext.slice(0, 30).split('').map((char, i) => {
+                        const isLetter = /[A-Z]/i.test(char);
+                        const cleanChar = char.toUpperCase();
+                        const code = cleanChar.charCodeAt(0);
+                        const ciphChar = isLetter 
+                          ? String.fromCharCode(((code - 65 + caesarShift) % 26) + 65)
+                          : char;
+                        
+                        return (
+                          <div key={i} className="flex flex-col items-center bg-cyber-dark border border-gray-800 p-2 rounded-lg min-w-10">
+                            <span className="text-[10px] text-gray-500 font-mono">IN</span>
+                            <span className="text-sm font-bold text-white font-mono">{cleanChar === ' ' ? '␣' : cleanChar}</span>
+                            <div className="w-4 h-0.5 bg-gray-700 my-1" />
+                            <span className="text-[10px] text-gray-500 font-mono">OUT</span>
+                            <span className="text-sm font-bold text-amber-400 font-mono">{ciphChar === ' ' ? '␣' : ciphChar}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </div>

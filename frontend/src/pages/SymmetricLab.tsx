@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Key, Lock, Unlock, RefreshCw, Copy, Check, Info, ArrowRight, Code, ShieldAlert, RotateCcw, Compass, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Key, Lock, Unlock, RefreshCw, Copy, Check, Info, ArrowRight, Code, ShieldAlert, RotateCcw, Compass, CheckCircle2, Package, PackageOpen } from 'lucide-react';
+import { motion } from 'framer-motion';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
@@ -8,16 +9,17 @@ import { RealWorldUsesCard } from '../components/RealWorldUsesCard';
 
 const SymmetricLab: React.FC = () => {
   const { markLabVisited, updateLabProgress, recordAlgorithmLearned } = useProgress();
-  const [activeTab, setActiveTab] = useState<'encrypt' | 'decrypt' | 'flowchart' | 'about'>('encrypt');
+  const [activeTab, setActiveTab] = useState<'encrypt' | 'decrypt' | 'animation' | 'flowchart' | 'about'>('encrypt');
 
   useEffect(() => {
     markLabVisited('symmetric', 'AES Encryption Lab', '/labs/symmetric');
   }, []);
 
-  const handleTabChange = (tab: 'encrypt' | 'decrypt' | 'flowchart' | 'about') => {
+  const handleTabChange = (tab: 'encrypt' | 'decrypt' | 'animation' | 'flowchart' | 'about') => {
     setActiveTab(tab);
     if (tab === 'decrypt') updateLabProgress('symmetric', 60);
-    if (tab === 'flowchart') updateLabProgress('symmetric', 85);
+    if (tab === 'animation') updateLabProgress('symmetric', 80);
+    if (tab === 'flowchart') updateLabProgress('symmetric', 90);
     if (tab === 'about') updateLabProgress('symmetric', 100);
   };
 
@@ -39,6 +41,68 @@ const SymmetricLab: React.FC = () => {
   const [tamperDecResult, setTamperDecResult] = useState<string | null>(null);
   const [tamperDecError, setTamperDecError] = useState<string | null>(null);
   const [tamperLoading, setTamperLoading] = useState(false);
+
+  // Symmetric Cartoon Animation States
+  const [symMessage, setSymMessage] = useState('Secret Package 📦');
+  const [symState, setSymState] = useState<'idle' | 'locked' | 'unlocked'>('idle');
+  const [symCiphertext, setSymCiphertext] = useState('');
+  const [symDecryptedText, setSymDecryptedText] = useState('');
+
+  const symChestSlotRef = useRef<HTMLDivElement>(null);
+  const symChestLockRef = useRef<HTMLDivElement>(null);
+
+  const handleSymPackageDragEnd = (_event: any, info: any) => {
+    if (!symChestSlotRef.current) return;
+    const slotRect = symChestSlotRef.current.getBoundingClientRect();
+    const dropX = info.point.x;
+    const dropY = info.point.y;
+
+    if (
+      dropX >= slotRect.left &&
+      dropX <= slotRect.right &&
+      dropY >= slotRect.top &&
+      dropY <= slotRect.bottom
+    ) {
+      setSymState('locked');
+      // Simple mock base64 ciphertext showing dynamic encryption
+      const rawB64 = btoa(symMessage);
+      setSymCiphertext(rawB64.substring(0, 16) + "..." + rawB64.substring(rawB64.length - 16));
+      setSymDecryptedText('');
+    }
+  };
+
+  const handleSymKeyDragEnd = (_event: any, info: any) => {
+    if (!symChestLockRef.current) return;
+    const lockRect = symChestLockRef.current.getBoundingClientRect();
+    const dropX = info.point.x;
+    const dropY = info.point.y;
+
+    if (
+      dropX >= lockRect.left &&
+      dropX <= lockRect.right &&
+      dropY >= lockRect.top &&
+      dropY <= lockRect.bottom
+    ) {
+      if (symState === 'locked') {
+        setSymState('unlocked');
+        setSymDecryptedText(symMessage);
+      }
+    }
+  };
+
+  const triggerSymAutoEncrypt = () => {
+    setSymState('locked');
+    const rawB64 = btoa(symMessage);
+    setSymCiphertext(rawB64.substring(0, 16) + "..." + rawB64.substring(rawB64.length - 16));
+    setSymDecryptedText('');
+  };
+
+  const triggerSymAutoDecrypt = () => {
+    if (symState === 'locked') {
+      setSymState('unlocked');
+      setSymDecryptedText(symMessage);
+    }
+  };
 
   // Reset bit-flipping when encryption results change
   const [isQuestMode, setIsQuestMode] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] || '').get('quest') === 'true');
@@ -338,7 +402,7 @@ console.log(\`Ciphertext: \${ciphertext}\`);`;
           </button>
 
           <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
-            {(['encrypt', 'decrypt', 'flowchart', 'about'] as const).map((tab) => (
+            {(['encrypt', 'decrypt', 'animation', 'flowchart', 'about'] as const).map((tab) => (
               <button
                 key={tab}
                 disabled={isQuestMode}
@@ -351,7 +415,7 @@ console.log(\`Ciphertext: \${ciphertext}\`);`;
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                {tab}
+                {tab === 'encrypt' ? '1. Encrypt' : tab === 'decrypt' ? '2. Decrypt' : tab === 'animation' ? '3. Animation' : tab === 'flowchart' ? '4. Flowchart' : '5. About'}
               </button>
             ))}
           </div>
@@ -890,6 +954,222 @@ console.log(\`Ciphertext: \${ciphertext}\`);`;
                   </div>
                 )}
 
+              </div>
+            </div>
+          )}
+
+          {/* TAB: ANIMATION */}
+          {activeTab === 'animation' && (
+            <div className="glass-panel p-6 space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Package className="w-5 h-5 text-blue-400" />
+                  Symmetric Encryption: The Shared Lockbox Analogy
+                </h2>
+                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                  Symmetric cryptography uses the <strong>same single key</strong> to lock (encrypt) and unlock (decrypt) information. Both Alice and Bob must securely exchange this secret key beforehand.
+                </p>
+              </div>
+
+              {/* Suitcase Interactive Sandbox */}
+              <div className="bg-cyber-darker p-6 rounded-2xl border border-gray-800 space-y-8 relative overflow-hidden select-none">
+                
+                {/* HUD Instructions */}
+                <div className="bg-blue-950/20 border border-blue-500/20 p-3 rounded-xl text-center text-xs text-blue-300 font-mono flex items-center justify-center gap-2">
+                  <Compass className="w-4 h-4 animate-spin-slow text-blue-400" />
+                  <span>
+                    {symState === 'idle' && "Drag the Package into the Suitcase opening to encrypt and lock it!"}
+                    {symState === 'locked' && "Package is locked with AES-256! Drag the Shared Secret Key onto the Lock to open it!"}
+                    {symState === 'unlocked' && "Decryption successful! The same key unlocked the symmetric trunk."}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch relative">
+                  
+                  {/* Left Column: Alice's Package */}
+                  <div className="flex flex-col items-center justify-between p-4 bg-gray-900/40 border border-gray-850 rounded-xl space-y-4">
+                    <div className="w-full text-center">
+                      <span className="text-[10px] font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 uppercase">
+                        Alice (Sender)
+                      </span>
+                      <h4 className="text-xs font-bold text-white mt-2">Pack Secret Cargo</h4>
+                    </div>
+
+                    <textarea
+                      value={symMessage}
+                      disabled={symState !== 'idle'}
+                      onChange={(e) => setSymMessage(e.target.value)}
+                      className="w-full h-20 bg-cyber-darker border border-gray-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500 resize-none font-sans"
+                      placeholder="Type secret cargo..."
+                    />
+
+                    {symState === 'idle' ? (
+                      <motion.div
+                        drag
+                        dragSnapToOrigin
+                        dragElastic={0.2}
+                        onDragEnd={handleSymPackageDragEnd}
+                        whileDrag={{ scale: 1.1, zIndex: 50 }}
+                        className="w-36 h-24 bg-gradient-to-br from-amber-700 to-amber-900 border-2 border-amber-600 rounded-lg shadow-xl cursor-grab active:cursor-grabbing flex flex-col justify-between p-2.5 text-white font-semibold text-[10px] relative hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] transition-shadow"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="w-6 h-6 bg-amber-800 rounded border border-amber-750 flex items-center justify-center text-xs font-mono">📦</div>
+                          <div className="text-[7px] text-amber-300 font-mono tracking-wider font-bold">FRAGILE</div>
+                        </div>
+                        <div className="truncate text-center font-mono font-bold">{symMessage || 'EMPTY'}</div>
+                        <div className="text-[7px] text-amber-400 text-right">AES-256 DATA</div>
+                      </motion.div>
+                    ) : (
+                      <div className="w-36 h-24 bg-gray-950/60 border border-dashed border-gray-800 rounded-lg flex items-center justify-center text-[10px] text-gray-600 font-mono">
+                        Cargo Packed
+                      </div>
+                    )}
+
+                    <div className="w-full">
+                      {symState === 'idle' ? (
+                        <button
+                          onClick={triggerSymAutoEncrypt}
+                          className="w-full py-1.5 bg-blue-950/30 hover:bg-blue-900/50 border border-blue-500/20 hover:border-blue-500/40 text-blue-400 text-[10px] font-mono uppercase rounded-lg transition-all cursor-pointer"
+                        >
+                          ⚡ Auto Lock
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSymState('idle');
+                            setSymCiphertext('');
+                            setSymDecryptedText('');
+                          }}
+                          className="w-full py-1.5 bg-gray-850 hover:bg-gray-800 border border-gray-850 text-gray-400 text-[10px] font-mono uppercase rounded-lg transition-all cursor-pointer"
+                        >
+                          Reset Analogy
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Middle Column: The Lockbox Suitcase */}
+                  <div className="flex flex-col items-center justify-between p-4 bg-gray-900/60 border border-gray-800 rounded-xl relative space-y-6 min-h-[300px]">
+                    <div className="w-full text-center">
+                      <span className="text-[10px] font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 uppercase">
+                        Symmetric Storage Chest
+                      </span>
+                    </div>
+
+                    {/* Cartoon Suitcase */}
+                    <div className="relative w-44 h-48 bg-gradient-to-b from-slate-700 to-slate-800 rounded-2xl border border-slate-650 flex flex-col items-center justify-between p-3 relative shadow-2xl">
+                      
+                      {/* Box top opening */}
+                      <div 
+                        ref={symChestSlotRef}
+                        className={`w-32 py-2.5 rounded-md border text-center transition-all relative ${
+                          symState === 'idle'
+                            ? 'bg-blue-950/40 border-blue-500/40 animate-pulse text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                            : 'bg-gray-900 border-gray-800 text-gray-500'
+                        }`}
+                      >
+                        <div className="w-20 h-1 bg-black rounded mx-auto mb-1.5 border border-gray-850" />
+                        <span className="text-[8px] font-mono uppercase font-bold tracking-wider">
+                          Chest Opening
+                        </span>
+                      </div>
+
+                      {/* Locked/Unlocked display */}
+                      <div className="w-full flex-grow flex items-center justify-center p-2 relative">
+                        {symState === 'unlocked' ? (
+                          <div className="w-full h-full bg-emerald-950/10 border border-emerald-500/20 rounded-lg p-2.5 flex flex-col justify-between animate-fade-in text-[10px] font-sans">
+                            <span className="text-[8px] font-mono font-bold text-emerald-400 uppercase tracking-widest block border-b border-emerald-900/30 pb-1 flex items-center gap-1">
+                              <PackageOpen className="w-3 h-3" /> Unlocked Chest
+                            </span>
+                            <p className="text-white italic mt-1.5 break-all max-h-16 overflow-y-auto">
+                              "{symDecryptedText}"
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center space-y-2">
+                            {symState === 'locked' ? (
+                              <div className="w-full text-center space-y-1.5">
+                                <div 
+                                  ref={symChestLockRef}
+                                  className="w-10 h-10 bg-blue-950/40 border border-blue-500/40 rounded-full flex items-center justify-center text-blue-500 mx-auto shadow-[0_0_15px_rgba(59,130,246,0.25)] animate-pulse"
+                                >
+                                  <Lock className="w-4 h-4" />
+                                </div>
+                                <span className="text-[8px] font-mono uppercase text-blue-400 tracking-widest">
+                                  locked
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="text-center text-[9px] text-gray-500 font-mono uppercase animate-pulse">
+                                Awaiting Cargo...
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Ciphertext representation */}
+                      {symState === 'locked' && (
+                        <div className="w-full bg-gray-900/90 border border-gray-800 p-1.5 rounded-lg text-[8px] font-mono text-gray-400 break-all select-all max-h-12 overflow-y-auto leading-tight">
+                          <span className="text-blue-400 font-bold block text-[7px] uppercase">AES Ciphertext (HEX):</span>
+                          {symCiphertext}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-[9px] font-mono text-gray-500 text-center uppercase tracking-wider">
+                      Shared Key Security
+                    </div>
+                  </div>
+
+                  {/* Right Column: Shared Key */}
+                  <div className="flex flex-col items-center justify-between p-4 bg-gray-900/40 border border-gray-850 rounded-xl space-y-4">
+                    <div className="w-full text-center">
+                      <span className="text-[10px] font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 uppercase">
+                        Shared Secret Key
+                      </span>
+                      <h4 className="text-xs font-bold text-white mt-2">Symmetric Key (256-bit)</h4>
+                    </div>
+
+                    <div className="flex-grow flex items-center justify-center">
+                      {symState === 'locked' ? (
+                        <motion.div
+                          drag
+                          dragSnapToOrigin
+                          dragElastic={0.2}
+                          onDragEnd={handleSymKeyDragEnd}
+                          whileDrag={{ scale: 1.1, zIndex: 50 }}
+                          className="w-16 h-16 bg-gradient-to-br from-blue-400 to-indigo-600 border border-blue-300 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.25)] hover:shadow-[0_0_25px_rgba(59,130,246,0.45)] cursor-grab active:cursor-grabbing flex items-center justify-center text-white relative transition-shadow"
+                        >
+                          <Key className="w-8 h-8 text-black" />
+                          <div className="absolute -bottom-6 w-24 text-[8px] font-mono text-blue-400 uppercase tracking-widest text-center">
+                            Shared Key
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <div className="w-16 h-16 bg-gray-950/60 border border-dashed border-gray-800 rounded-full flex items-center justify-center text-gray-650">
+                          <Key className="w-8 h-8 opacity-25" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="w-full">
+                      {symState === 'locked' ? (
+                        <button
+                          onClick={triggerSymAutoDecrypt}
+                          className="w-full py-1.5 bg-blue-950/30 hover:bg-blue-900/50 border border-blue-500/20 hover:border-blue-500/40 text-blue-400 text-[10px] font-mono uppercase rounded-lg transition-all cursor-pointer"
+                        >
+                          ⚡ Auto Unlock
+                        </button>
+                      ) : (
+                        <div className="w-full py-1.5 bg-gray-950 border border-gray-850 text-gray-650 text-[10px] font-mono uppercase rounded-lg text-center select-none cursor-not-allowed">
+                          Key Locked
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
               </div>
             </div>
           )}

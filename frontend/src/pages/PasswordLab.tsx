@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Lock, ShieldCheck, ShieldAlert, Check, X, RefreshCw, Eye, EyeOff, Play, ShieldEllipsis, Info, Compass, CheckCircle2 
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
@@ -10,16 +11,17 @@ import { RealWorldUsesCard } from '../components/RealWorldUsesCard';
 
 const PasswordLab: React.FC = () => {
   const { markLabVisited, updateLabProgress, recordAlgorithmLearned } = useProgress();
-  const [activeTab, setActiveTab] = useState<'strength' | 'hash' | 'salts' | 'standards'>('strength');
+  const [activeTab, setActiveTab] = useState<'strength' | 'hash' | 'animation' | 'salts' | 'standards'>('strength');
 
   useEffect(() => {
     markLabVisited('passwords', 'Password Security Lab', '/labs/passwords');
   }, []);
 
-  const handleTabChange = (tab: 'strength' | 'hash' | 'salts' | 'standards') => {
+  const handleTabChange = (tab: 'strength' | 'hash' | 'animation' | 'salts' | 'standards') => {
     setActiveTab(tab);
-    if (tab === 'hash') updateLabProgress('passwords', 60);
-    if (tab === 'salts') updateLabProgress('passwords', 85);
+    if (tab === 'hash') updateLabProgress('passwords', 40);
+    if (tab === 'animation') updateLabProgress('passwords', 60);
+    if (tab === 'salts') updateLabProgress('passwords', 80);
     if (tab === 'standards') updateLabProgress('passwords', 100);
   };
 
@@ -34,6 +36,34 @@ const PasswordLab: React.FC = () => {
   const [hashSalt, setHashSalt] = useState('');
   const [hashResult, setHashResult] = useState<any>(null);
   const [hashLoading, setHashLoading] = useState(false);
+
+  // Password Animation States
+  const [animPassword, setAnimPassword] = useState('easy123');
+  const [crackStatus, setCrackStatus] = useState<'idle' | 'cracking' | 'cracked' | 'locked'>('idle');
+  const [crackAttempts, setCrackAttempts] = useState(0);
+  const [vaultReinforcements, setVaultReinforcements] = useState(1); // 1 to 5 cost factor scale
+
+  const triggerPasswordCrack = () => {
+    setCrackStatus('cracking');
+    setCrackAttempts(0);
+    const isStrong = animPassword.length >= 8 && /[A-Z]/.test(animPassword) && /[0-9]/.test(animPassword) && /[^A-Z0-9]/i.test(animPassword);
+    
+    // Scale time dial and difficulty based on password strength and cost reinforcements
+    const duration = 800 + (vaultReinforcements * 400) + (isStrong ? 1500 : 0);
+    
+    const interval = setInterval(() => {
+      setCrackAttempts(prev => prev + Math.floor(Math.random() * 120) + 50);
+    }, 60);
+
+    setTimeout(() => {
+      clearInterval(interval);
+      if (isStrong || vaultReinforcements >= 4) {
+        setCrackStatus('locked');
+      } else {
+        setCrackStatus('cracked');
+      }
+    }, duration);
+  };
 
   // Tab 3: Salt & Pepper Simulation
   const [simPassword, setSimPassword] = useState('admin123');
@@ -233,7 +263,7 @@ const PasswordLab: React.FC = () => {
           </button>
 
           <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
-            {(['strength', 'hash', 'salts', 'standards'] as const).map((tab) => (
+            {(['strength', 'hash', 'animation', 'salts', 'standards'] as const).map((tab) => (
               <button
                 key={tab}
                 disabled={isQuestMode}
@@ -246,7 +276,7 @@ const PasswordLab: React.FC = () => {
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                {tab}
+                {tab === 'strength' ? '1. Strength' : tab === 'hash' ? '2. Hashing' : tab === 'animation' ? '3. Animation' : tab === 'salts' ? '4. Salts & Pepper' : '5. Standards'}
               </button>
             ))}
           </div>
@@ -632,6 +662,209 @@ const PasswordLab: React.FC = () => {
                   </div>
                 )}
 
+              </div>
+            </div>
+          )}
+
+          {/* TAB: ANIMATION */}
+          {activeTab === 'animation' && (
+            <div className="glass-panel p-6 space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Lock className="w-5 h-5 text-purple-400" />
+                  Password Security: The KDF Vault Barricade
+                </h2>
+                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                  Key Derivation Functions (KDFs like bcrypt or Argon2id) slow down brute force cracking by adding mathematical difficulty. This acts like adding heavy steel shields and time-locks to a vault door.
+                </p>
+              </div>
+
+              {/* Vault Interactive Sandbox */}
+              <div className="bg-cyber-darker p-6 rounded-2xl border border-gray-800 space-y-8 relative overflow-hidden select-none">
+                
+                {/* HUD Instructions */}
+                <div className="bg-purple-950/20 border border-purple-500/20 p-3 rounded-xl text-center text-xs text-purple-300 font-mono flex items-center justify-center gap-2">
+                  <Compass className="w-4 h-4 animate-spin-slow text-purple-400" />
+                  <span>
+                    {crackStatus === 'idle' && "Strengthen your password or increase KDF cost reinforcements, then run the Brute Force simulator!"}
+                    {crackStatus === 'cracking' && "Cracker bot running dictionary attack... scanning door vulnerabilities!"}
+                    {crackStatus === 'cracked' && "🔴 SECURITY BREACHED! The weak door could not resist brute force."}
+                    {crackStatus === 'locked' && "🟢 DEFENSE SUCCESSFUL! Slow KDF computation rates exhausted the attacker."}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center justify-center">
+                  
+                  {/* Left Column: Attack Setup & Controls */}
+                  <div className="flex flex-col p-4 bg-gray-900/40 border border-gray-850 rounded-xl space-y-4">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20 uppercase">
+                        KDF Hardening Parameters
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-mono uppercase text-gray-400">Password Input</label>
+                      <input
+                        type="text"
+                        value={animPassword}
+                        disabled={crackStatus === 'cracking'}
+                        onChange={(e) => setAnimPassword(e.target.value)}
+                        className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-purple-500 font-mono"
+                        placeholder="Type test password..."
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-[10px] font-mono text-gray-400">
+                        <span>VAULT DOOR REINFORCEMENTS:</span>
+                        <span className="text-purple-450 font-bold">
+                          {vaultReinforcements === 1 && "Level 1: Wooden Gate 🪵"}
+                          {vaultReinforcements === 2 && "Level 2: Iron Bars ⛓️"}
+                          {vaultReinforcements === 3 && "Level 3: Steel Shield 🛡️"}
+                          {vaultReinforcements === 4 && "Level 4: Bank Vault 🏛️"}
+                          {vaultReinforcements === 5 && "Level 5: Blast Safe 🚀"}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1"
+                        max="5"
+                        disabled={crackStatus === 'cracking'}
+                        value={vaultReinforcements}
+                        onChange={(e) => setVaultReinforcements(parseInt(e.target.value))}
+                        className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={triggerPasswordCrack}
+                        disabled={crackStatus === 'cracking' || !animPassword.trim()}
+                        className="flex-1 py-2 bg-red-650 hover:bg-red-600 text-white font-extrabold text-xs uppercase tracking-wider font-mono rounded-lg transition-all shadow-[0_0_15px_rgba(239,68,68,0.2)] disabled:opacity-40 cursor-pointer"
+                      >
+                        {crackStatus === 'cracking' ? 'Attacking...' : '💥 Brute Force safe'}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setCrackStatus('idle');
+                          setCrackAttempts(0);
+                        }}
+                        disabled={crackStatus === 'cracking'}
+                        className="py-2 px-4 bg-gray-850 hover:bg-gray-800 border border-gray-800 text-gray-400 text-xs font-mono uppercase rounded-lg transition-all cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Cartoon Vault Door */}
+                  <div className="flex flex-col items-center justify-center relative min-h-[300px] bg-gray-900/20 border border-gray-850 p-6 rounded-2xl">
+                    
+                    {/* Brute Force attempts counter HUD */}
+                    {crackStatus === 'cracking' && (
+                      <div className="absolute top-2 right-4 text-[9px] font-mono text-red-500 animate-pulse uppercase tracking-wider font-bold">
+                        Attempts: {crackAttempts.toLocaleString()}
+                      </div>
+                    )}
+
+                    {/* The Safe Door */}
+                    <motion.div
+                      animate={crackStatus === 'cracking' ? { x: [-1, 1, -1, 1, 0] } : {}}
+                      transition={crackStatus === 'cracking' ? { repeat: Infinity, duration: 0.1 } : {}}
+                      className="w-40 h-48 border-4 border-slate-700 rounded-xl relative overflow-hidden flex items-center justify-center bg-gray-950"
+                    >
+                      {/* Render door styles dynamically based on reinforcement levels */}
+                      <AnimatePresence mode="wait">
+                        {crackStatus === 'cracked' ? (
+                          <motion.div 
+                            initial={{ scale: 0.5, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="text-center p-3 space-y-1 z-15"
+                          >
+                            <span className="text-3xl block">🔥</span>
+                            <span className="text-[10px] text-red-500 font-mono uppercase font-bold block leading-tight">
+                              Breached!
+                            </span>
+                          </motion.div>
+                        ) : (
+                          <div className="w-full h-full relative">
+                            {/* Wooden Door */}
+                            {vaultReinforcements === 1 && (
+                              <div className="absolute inset-0 bg-gradient-to-r from-amber-850 to-amber-950 border border-amber-900 flex flex-col justify-between p-2 shadow-inner">
+                                <div className="h-1 bg-amber-600 rounded-full w-full" />
+                                <div className="h-1 bg-amber-600 rounded-full w-full" />
+                                <div className="h-1 bg-amber-600 rounded-full w-full" />
+                                <div className="absolute top-20 right-4 w-4 h-4 bg-yellow-600 rounded-full border border-yellow-500 shadow-md flex items-center justify-center font-bold text-[8px]">●</div>
+                              </div>
+                            )}
+
+                            {/* Iron Bars */}
+                            {vaultReinforcements === 2 && (
+                              <div className="absolute inset-0 bg-slate-800 flex justify-around p-1 shadow-inner">
+                                <div className="w-2 bg-slate-650 h-full border-r border-slate-900" />
+                                <div className="w-2 bg-slate-650 h-full border-r border-slate-900" />
+                                <div className="w-2 bg-slate-650 h-full border-r border-slate-900" />
+                                <div className="w-2 bg-slate-650 h-full border-r border-slate-900" />
+                                <div className="absolute top-20 right-4 w-5 h-8 bg-slate-950 border border-slate-850 rounded flex items-center justify-center text-[8px]">🔒</div>
+                              </div>
+                            )}
+
+                            {/* Steel Shield */}
+                            {vaultReinforcements === 3 && (
+                              <div className="absolute inset-0 bg-gradient-to-b from-gray-500 to-gray-700 border-2 border-gray-400 p-2 flex flex-col items-center justify-center shadow-2xl">
+                                <div className="w-12 h-12 rounded-full border-4 border-gray-400 bg-gray-650 flex items-center justify-center relative shadow-md">
+                                  <div className="w-1.5 h-8 bg-gray-800 rounded absolute transform rotate-45" />
+                                </div>
+                                <div className="absolute bottom-2 text-[6px] font-mono text-gray-400 uppercase tracking-widest">
+                                  Steel Plated
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Bank Vault */}
+                            {vaultReinforcements === 4 && (
+                              <div className="absolute inset-0 bg-gradient-to-b from-zinc-300 to-zinc-500 border-4 border-zinc-400 p-3 flex flex-col items-center justify-center shadow-inner relative">
+                                <div className="w-16 h-16 rounded-full border-8 border-double border-zinc-400 bg-zinc-650 flex items-center justify-center animate-spin-slow">
+                                  <div className="w-2 h-14 bg-zinc-800 rounded absolute" />
+                                  <div className="w-14 h-2 bg-zinc-800 rounded absolute" />
+                                </div>
+                                <div className="absolute bottom-2 text-[6px] font-mono text-zinc-800 uppercase tracking-wider font-extrabold">
+                                  Secured Bank Vault
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Blast Safe */}
+                            {vaultReinforcements === 5 && (
+                              <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-cyan-500/50 p-2 flex flex-col items-center justify-center shadow-[inset_0_0_20px_rgba(6,182,212,0.15)] relative">
+                                <div className="w-14 h-14 border border-cyan-500/30 rounded-lg flex items-center justify-center text-cyan-400 font-mono text-[9px] relative overflow-hidden bg-black/60 shadow-[0_0_10px_rgba(6,182,212,0.15)]">
+                                  <div className="absolute inset-0 bg-cyan-500/5 animate-pulse" />
+                                  <span>TIME-LOCK</span>
+                                </div>
+                                <div className="absolute bottom-2 text-[6px] font-mono text-cyan-400 uppercase tracking-widest font-bold">
+                                  Titanium Blast Safe
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Glowing Lock Overlay */}
+                            {crackStatus === 'locked' && (
+                              <div className="absolute inset-0 bg-emerald-950/85 backdrop-blur-sm flex flex-col items-center justify-center p-3 animate-fade-in z-10 border border-emerald-500/30">
+                                <span className="text-2xl block mb-1">🛡️</span>
+                                <span className="text-[10px] text-emerald-400 font-mono uppercase font-bold text-center leading-tight">
+                                  Safe Locked!
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  </div>
+
+                </div>
               </div>
             </div>
           )}

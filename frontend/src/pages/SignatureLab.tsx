@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { CheckSquare, Edit3, ShieldCheck, ShieldAlert, Copy, Check, RefreshCw, AlertTriangle, Compass, CheckCircle2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../utils/api';
 import { useProgress } from '../context/ProgressContext';
 import { Eli5Banner } from '../components/Eli5Banner';
@@ -8,16 +9,17 @@ import { RealWorldUsesCard } from '../components/RealWorldUsesCard';
 
 const SignatureLab: React.FC = () => {
   const { markLabVisited, updateLabProgress } = useProgress();
-  const [activeTab, setActiveTab] = useState<'sign' | 'verify' | 'sandbox' | 'concepts'>('sign');
+  const [activeTab, setActiveTab] = useState<'sign' | 'verify' | 'animation' | 'sandbox' | 'concepts'>('sign');
 
   useEffect(() => {
     markLabVisited('signatures', 'Digital Signature Lab', '/labs/signatures');
   }, []);
 
-  const handleTabChange = (tab: 'sign' | 'verify' | 'sandbox' | 'concepts') => {
+  const handleTabChange = (tab: 'sign' | 'verify' | 'animation' | 'sandbox' | 'concepts') => {
     setActiveTab(tab);
-    if (tab === 'verify') updateLabProgress('signatures', 60);
-    if (tab === 'sandbox') updateLabProgress('signatures', 85);
+    if (tab === 'verify') updateLabProgress('signatures', 40);
+    if (tab === 'animation') updateLabProgress('signatures', 60);
+    if (tab === 'sandbox') updateLabProgress('signatures', 80);
     if (tab === 'concepts') updateLabProgress('signatures', 100);
   };
 
@@ -31,6 +33,30 @@ const SignatureLab: React.FC = () => {
   const [signature, setSignature] = useState('');
   const [signLoading, setSignLoading] = useState(false);
   const [copiedSig, setCopiedSig] = useState(false);
+
+  // Signature Cartoon Animation States
+  const [sigMessage, setSigMessage] = useState('Transfer $500 to Bob.');
+  const [sigState, setSigState] = useState<'idle' | 'signed' | 'tampered' | 'verified'>('idle');
+  const [sigSignature, setSigSignature] = useState('');
+
+  const triggerSignWax = () => {
+    setSigState('signed');
+    const rawB64 = btoa(sigMessage);
+    setSigSignature("SIG_RSA254_" + rawB64.substring(0, 16) + "_SEAL");
+  };
+
+  const triggerVerifyWax = () => {
+    if (sigState === 'signed') {
+      setSigState('verified');
+    }
+  };
+
+  const handleSigMsgChange = (val: string) => {
+    setSigMessage(val);
+    if (sigState === 'signed' || sigState === 'verified') {
+      setSigState('tampered');
+    }
+  };
 
   // Verify state
   const [verifyMsg, setVerifyMsg] = useState('Transfer $500 to Bob.');
@@ -208,7 +234,7 @@ const SignatureLab: React.FC = () => {
           </button>
 
           <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-850">
-            {(['sign', 'verify', 'sandbox', 'concepts'] as const).map((tab) => (
+            {(['sign', 'verify', 'animation', 'sandbox', 'concepts'] as const).map((tab) => (
               <button
                 key={tab}
                 disabled={isQuestMode}
@@ -221,7 +247,7 @@ const SignatureLab: React.FC = () => {
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                {tab}
+                {tab === 'sign' ? '1. Sign' : tab === 'verify' ? '2. Verify' : tab === 'animation' ? '3. Animation' : tab === 'sandbox' ? '4. Sandbox' : '5. Concepts'}
               </button>
             ))}
           </div>
@@ -499,6 +525,163 @@ const SignatureLab: React.FC = () => {
                     )}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: ANIMATION */}
+          {activeTab === 'animation' && (
+            <div className="glass-panel p-6 space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Edit3 className="w-5 h-5 text-pink-400" />
+                  Digital Signatures: The Notary Wax Seal Analogy
+                </h2>
+                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                  A digital signature guarantees <strong>authenticity</strong> and <strong>integrity</strong>. Think of it as a wax seal: Bob stamps the document with his private seal. If anyone alters even one character in transit, the seal instantly shatters!
+                </p>
+              </div>
+
+              {/* Wax Seal Interactive Sandbox */}
+              <div className="bg-cyber-darker p-6 rounded-2xl border border-gray-800 space-y-8 relative overflow-hidden select-none">
+                
+                {/* HUD Instructions */}
+                <div className="bg-pink-950/20 border border-pink-500/20 p-3 rounded-xl text-center text-xs text-pink-300 font-mono flex items-center justify-center gap-2">
+                  <Compass className="w-4 h-4 animate-spin-slow text-pink-400" />
+                  <span>
+                    {sigState === 'idle' && "Write the contract, then click 'Pour Wax & Stamp' to sign it!"}
+                    {sigState === 'signed' && "Signed! Now click 'Verify' to validate, OR edit the contract text to see the seal shatter!"}
+                    {sigState === 'verified' && "🟢 VALID SEAL! The document signature matches and has not been tampered with."}
+                    {sigState === 'tampered' && "🔴 SEAL SHATTERED! The document text was modified after the signature was stamped."}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch justify-center">
+                  
+                  {/* Left Column: Contract & Controls */}
+                  <div className="flex flex-col p-4 bg-gray-900/40 border border-gray-850 rounded-xl space-y-4">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20 uppercase">
+                        Document Editor
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-mono uppercase text-gray-400">Contract Content (Try editing this!)</label>
+                      <textarea
+                        value={sigMessage}
+                        onChange={(e) => handleSigMsgChange(e.target.value)}
+                        rows={3}
+                        className="w-full bg-cyber-darker border border-gray-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-pink-500 font-sans resize-none"
+                        placeholder="Write contract terms..."
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      {sigState === 'idle' || sigState === 'tampered' ? (
+                        <button
+                          onClick={triggerSignWax}
+                          disabled={!sigMessage.trim()}
+                          className="flex-1 py-2 bg-pink-650 hover:bg-pink-600 text-white font-extrabold text-xs uppercase tracking-wider font-mono rounded-lg transition-all shadow-[0_0_15px_rgba(236,72,153,0.2)] cursor-pointer"
+                        >
+                          🩸 Pour Wax & Stamp
+                        </button>
+                      ) : (
+                        <button
+                          onClick={triggerVerifyWax}
+                          disabled={sigState !== 'signed'}
+                          className={`flex-1 py-2 font-extrabold text-xs uppercase tracking-wider font-mono rounded-lg transition-all cursor-pointer ${
+                            sigState === 'signed'
+                              ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                              : 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-850'
+                          }`}
+                        >
+                          🔍 Verify Signature
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          setSigState('idle');
+                          setSigMessage('Transfer $500 to Bob.');
+                          setSigSignature('');
+                        }}
+                        className="py-2 px-4 bg-gray-850 hover:bg-gray-800 border border-gray-800 text-gray-400 text-xs font-mono uppercase rounded-lg transition-all cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Cartoon Wax Seal Contract */}
+                  <div className="flex flex-col items-center justify-center bg-gray-900/20 border border-gray-850 p-6 rounded-2xl relative min-h-[300px]">
+                    {/* Visual Contract sheet */}
+                    <div className="w-52 h-64 bg-gradient-to-b from-[#fbf6e9] to-[#f4ecd8] border border-amber-800/20 rounded-md shadow-2xl p-4 flex flex-col justify-between relative overflow-hidden">
+                      
+                      {/* Faux script lines */}
+                      <div className="space-y-2.5">
+                        <div className="text-[10px] font-serif text-amber-900 font-bold border-b border-amber-900/10 pb-1 uppercase tracking-wider text-center">
+                          📜 Official Agreement
+                        </div>
+                        <p className="text-[9px] font-serif text-amber-950 italic break-words leading-relaxed max-h-24 overflow-y-auto">
+                          "{sigMessage}"
+                        </p>
+                      </div>
+
+                      {/* Wax Seal Overlay Area */}
+                      <div className="flex justify-center items-center h-16 relative">
+                        <AnimatePresence>
+                          {sigState === 'idle' && (
+                            <div className="text-[8px] font-mono text-amber-900/30 uppercase tracking-widest border border-dashed border-amber-900/10 rounded px-2.5 py-1 animate-pulse">
+                              Awaiting Seal
+                            </div>
+                          )}
+
+                          {sigState === 'signed' && (
+                            <motion.div
+                              initial={{ scale: 2.2, opacity: 0, rotate: -20 }}
+                              animate={{ scale: 1.0, opacity: 1, rotate: 0 }}
+                              className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-red-800 border-2 border-red-400 shadow-md flex items-center justify-center text-white text-xs font-bold font-serif cursor-pointer shadow-[0_0_12px_rgba(239,68,68,0.3)] relative"
+                              title="Monogram Monarchy Stamp"
+                            >
+                              BOB
+                            </motion.div>
+                          )}
+
+                          {sigState === 'verified' && (
+                            <motion.div
+                              initial={{ scale: 0.8 }}
+                              animate={{ scale: [1, 1.1, 1] }}
+                              className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 border-2 border-emerald-400 shadow-md flex items-center justify-center text-white text-base font-serif cursor-pointer shadow-[0_0_12px_rgba(16,185,129,0.3)] relative"
+                            >
+                              ✓
+                            </motion.div>
+                          )}
+
+                          {sigState === 'tampered' && (
+                            <motion.div
+                              initial={{ scale: 1.1 }}
+                              animate={{ scale: [1, 0.95, 1], rotate: [-5, 5, 0] }}
+                              className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 border-2 border-dashed border-red-500 shadow-md flex items-center justify-center text-rose-500 text-xs font-bold font-serif relative"
+                            >
+                              ✕
+                              <div className="absolute inset-0 border-t border-red-500/80 transform rotate-45" />
+                              <div className="absolute inset-0 border-t border-red-500/80 transform -rotate-45" />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Base64 signature banner */}
+                      {sigSignature && (
+                        <div className="mt-2 text-[7px] font-mono text-amber-900/60 truncate border-t border-amber-900/10 pt-1.5 uppercase text-center">
+                          {sigSignature}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
               </div>
             </div>
           )}
