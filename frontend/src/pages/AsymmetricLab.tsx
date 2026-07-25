@@ -344,7 +344,7 @@ console.log("Decrypted:", decrypted.toString('utf8'));`;
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                {tab}
+                {tab === 'keygen' ? '1. Keygen' : tab === 'encrypt' ? '2. Encrypt' : tab === 'decrypt' ? '3. Decrypt' : tab === 'flow' ? '4. Mailbox Analogy' : '5. About'}
               </button>
             ))}
           </div>
